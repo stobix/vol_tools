@@ -1,0 +1,12 @@
+{application, vol_tools,
+ [
+  {description, ""},
+  {vsn, "1"},
+  {registered, [lst_ext]},
+  {applications, [
+                  kernel,
+                  stdlib
+                 ]},
+%  {mod, { vol_tools_app, []}},
+  {env, []}
+ ]}.
