@@ -6,7 +6,15 @@
     mapsiftr/3,
     mapsiftmapr/3,
     mapsiftl/3,
-    mapsiftmapl/3
+    mapsiftmapl/3,
+    select_one/1,
+    pick_nth/2,
+    pick_nth_nonrev/2,
+    pick_random/1,
+    reorder/1,
+    pick_n/2,
+    pick_n_undef/2,
+    pick_n_random/2
     ]).
 
 -spec sift(function(),list(Thing::any())) -> {list(Thing),list(Thing)}.
@@ -79,3 +87,65 @@ mapsiftr(Items,Pred,List) ->
         end,
         List,
         Items).
+
+select_one(List) ->
+    lists:nth(random:uniform(length(List)),List).
+
+pick_nth(_,N) when N =< 0 -> false;
+pick_nth(L,N) when N > length(L) -> false;
+
+pick_nth(List,N) ->
+    pick_nth(List,N,[]).
+
+pick_nth([L|Ls],1,Before) -> {L,(lists:reverse(Before))++Ls};
+pick_nth([L|Ls],N,Before) -> pick_nth(Ls,N-1,[L|Before]).
+
+
+pick_nth_nonrev(_,N) when N =< 0 -> false;
+pick_nth_nonrev(L,N) when N > length(L) -> false;
+
+pick_nth_nonrev(List,N) ->
+    pick_nth_nonrev(List,N,[]).
+
+pick_nth_nonrev([L|Ls],1,Before) -> {L,Before++Ls};
+pick_nth_nonrev([L|Ls],N,Before) -> pick_nth_nonrev(Ls,N-1,[L|Before]).
+
+pick_random(List) ->
+    pick_nth_nonrev(List,random:uniform(length(List))).
+
+pick_n_random(N,List) ->
+    pick_n_random(N,List,[]).
+
+
+pick_n_random(0,List,Acc) -> {Acc,List};
+pick_n_random(_N,[],Acc) -> {Acc,[]};
+pick_n_random(N,List,Acc) ->
+    {Item,NewList}=pick_random(List),
+    pick_n_random(N-1,NewList,[Item|Acc]).
+    
+
+reorder(List) ->
+    lists:foldr(
+        fun
+            (_,{[A],Acc}) ->
+                [A|Acc];
+            (_,{As,Acc}) ->
+                {Nth,List1}=pick_nth(As,random:uniform(length(As))),
+                {List1,[Nth|Acc]};
+            (_,As) ->
+                {Nth,List1}=pick_nth(As,random:uniform(length(As))),
+                {List1,[Nth]}
+        end,
+        List,
+        List).
+
+pick_n(A,B) -> pick_n(A,B,[]).
+
+pick_n(0,_,Acc) -> lists:reverse(Acc);
+pick_n(N,[L|Ls],Acc) -> pick_n(N-1,Ls,[L|Acc]).
+
+pick_n_undef(A,B) -> pick_n_undef(A,B,[]).
+pick_n_undef(0,_,Acc) -> lists:reverse(Acc);
+pick_n_undef(N,[L|Ls],Acc) -> pick_n_undef(N-1,Ls,[L|Acc]);
+pick_n_undef(N,[],Acc) -> pick_n_undef(N-1,[],[undef|Acc]).
+
