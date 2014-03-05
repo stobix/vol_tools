@@ -14,12 +14,39 @@
          ,number_to_string/1
          ,fix_home/1
          ,recompile_live/0
+         ,fac/1
+         ,fac_plus/2
+         ,nCr/2
+         ,nCr_exact/2
         ]).
 
 restart(Module) ->
  application:stop(Module),
  application:unload(Module),
  application:start(Module).
+
+% Why is this not in any standard lib‽
+fac(0) -> 1;
+fac(N) -> N*fac(N-1).
+
+fac_plus(0,_M) -> 1;
+fac_plus(1,_M) -> 1;
+fac_plus(N,M) -> (N+M)*fac_plus(N-1,M).
+
+
+%nCr2(N,K) -> fac_plus(K,N-K) div fac(K).
+
+nCr_exact(N,K) ->
+    nCr_exact(N,K,1,1).
+
+nCr_exact(_N,0,NAcc,KAcc) -> NAcc div KAcc;
+nCr_exact(N,K,NAcc,KAcc) -> nCr_exact(N-1,K-1,NAcc*N,KAcc*K).
+
+nCr(N,K) ->
+    nCr(N,K,1).
+
+nCr(_N,0,Acc) -> Acc;
+nCr(N,K,Acc) -> nCr(N-1,K-1,N/K*Acc).
 
 
 make_documentation() ->
