@@ -132,14 +132,20 @@ reload_files_live(Files) ->
 
 
 reload_app(Dir) ->
-    {ok,Files}=file:list_dir(Dir++"/src/"),
-    [reload_files(valid_files(Files)),
-    case file:list_dir(Dir++"/deps/") of
-        {error,enoent} -> 
-            [];
-        {ok,Deps} ->
-            lists:map(fun reload_app/1,Deps)
-    end].
+    case file:list_dir(Dir++"/src/") of
+        {ok,Files} ->
+            {Dir,[reload_files(valid_files(Files)),
+                  case file:list_dir(Dir++"/deps/") of
+                        {error,enoent} -> 
+                            [];
+                        {ok,Dirs} ->
+                            Deps = lists:map(fun(X) -> Dir++"/deps/"++X end,Dirs),
+                            lists:map(fun reload_app/1,Deps)
+                  end
+                 ]};
+        {error,enoent} ->
+            {Dir,enoent}
+    end.
 
 
 
