@@ -134,7 +134,9 @@ reload_files_live(Files) ->
 reload_app(Dir) ->
     case file:list_dir(Dir++"/src/") of
         {ok,Files} ->
-            [{Dir,reload_files(valid_files(Files))}|
+            % Nödlösning med flatten. Kan fixas via snygga algoritmer. Sen™.
+            lists:flatten(
+                [{Dir,reload_files(valid_files(Files))}|
                   case file:list_dir(Dir++"/deps/") of
                         {error,enoent} -> 
                             [];
@@ -142,7 +144,7 @@ reload_app(Dir) ->
                             Deps = lists:map(fun(X) -> Dir++"/deps/"++X end,Dirs),
                             lists:map(fun reload_app/1,Deps)
                   end
-                 ];
+                          ]);
         {error,enoent} ->
             {Dir,enoent}
     end.
