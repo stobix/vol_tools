@@ -18,12 +18,13 @@
          ,fac_plus/2
          ,nCr/2
          ,nCr_exact/2
+         ,reload_app/1
         ]).
 
 restart(Module) ->
- application:stop(Module),
- application:unload(Module),
- application:start(Module).
+    application:stop(Module),
+    application:unload(Module),
+    application:start(Module).
 
 % Why is this not in any standard lib‽
 fac(0) -> 1;
@@ -62,12 +63,12 @@ make_documentation(Application) when is_list(Application)->
     edoc:application(list_to_atom(Application),'.',[{dir,"doc/"++Application}]).
 
 chain(Module) ->
- case restart(Module) of
-   {error,{not_started,A}} ->
-        chain(A),
-        chain(Module);
-   A -> A
- end.
+    case restart(Module) of
+        {error,{not_started,A}} ->
+            chain(A),
+            chain(Module);
+        A -> A
+    end.
 
 fst(Tuple) -> element(1,Tuple).
 snd(Tuple) -> element(2,Tuple).
@@ -128,6 +129,18 @@ reload_files_live(Files) ->
                   end
               end,
               Files).
+
+
+reload_app(Dir) ->
+    {ok,Files}=file:list_dir(Dir++"/src/"),
+    [reload_files(valid_files(Files)),
+    case file:list_dir(Dir++"/deps/") of
+        {error,enoent} -> 
+            [];
+        {ok,Deps} ->
+            lists:map(fun reload_app/1,Deps)
+    end].
+
 
 
 flip([]) -> [];
