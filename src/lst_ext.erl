@@ -14,7 +14,10 @@
     reorder/1,
     pick_n/2,
     pick_n_undef/2,
-    pick_n_random/2
+    pick_n_random/2,
+    sequences/2,
+    split_at/2,
+    sequence_split/3
     ]).
 
 -spec sift(function(),list(Thing::any())) -> {list(Thing),list(Thing)}.
@@ -87,6 +90,27 @@ mapsiftr(Items,Pred,List) ->
         end,
         List,
         Items).
+
+% @doc transforms [1,2,3,...] to [[1,2,3..],[2,3,4...],...] where each sub list is of length Length, and the total list is of length length(List)-Length. Good for sliding window operations and such.
+sequences(Length,List) when Length > length(List) ->
+    [];
+
+sequences(Length,List) ->
+    [pick_n(Length,List)|sequences(Length,tl(List))].
+
+% @doc runs sequence on the list, and runs a split_at on each sublist. E.g sequence_split(SeuqenceLength=3,SplitAt=2,List=lists:seq(1,100)) -> [{[1,2],[3]},{[2,3],[4]}....]
+sequence_split(SequenceLength,SplitAt,List) ->
+    Split = fun(SubList) -> 
+            split_at(SplitAt,SubList) 
+    end,
+    lists:map(Split,sequences(SequenceLength,List)).
+
+% @doc splits a list at a certain point.
+% @spec (N::non_neg_integer(),list()) -> {L::list(),M::list()}, length(L) ==N.
+split_at(N,List) ->
+    {pick_n(N,List),lists:nthtail(N,List)}.
+
+
 
 select_one(List) ->
     lists:nth(random:uniform(length(List)),List).
