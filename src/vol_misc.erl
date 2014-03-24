@@ -2,6 +2,7 @@
 
 -export([restart/1
          ,chain/1
+         ,rechain/1
          ,recompile/0
          ,recompile/1
          ,reload_files/1
@@ -63,10 +64,19 @@ make_documentation(Application) when is_list(Application)->
     edoc:application(list_to_atom(Application),'.',[{dir,"doc/"++Application}]).
 
 chain(Module) ->
-    case restart(Module) of
+    case application:start(Module) of
         {error,{not_started,A}} ->
             chain(A),
             chain(Module);
+        A -> A
+    end.
+
+
+rechain(Module) ->
+    case restart(Module) of
+        {error,{not_started,A}} ->
+            rechain(A),
+            rechain(Module);
         A -> A
     end.
 
