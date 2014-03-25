@@ -20,7 +20,12 @@
          ,nCr/2
          ,nCr_exact/2
          ,reload_app/1
+         ,gen_id/0
         ]).
+
+
+% @doc generates a unique id to be used for whatever.
+gen_id() -> now().
 
 restart(Module) ->
     application:stop(Module),
