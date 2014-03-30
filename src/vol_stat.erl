@@ -7,6 +7,7 @@
     mse/2,
     sae/2,
     mae/2,
+    ae/2,
     rms/2
     ]).
     
@@ -43,17 +44,19 @@ mse(As,Bs) ->
 
 % @doc sum of absolute errors of the two listes
 
-sae(As,Bs) -> lists:sum(abe(As,Bs,[])).
+sae(As,Bs) -> lists:sum(ae(As,Bs,[])).
 
-abe([],[],Acc) ->
-    Acc;
+ae(As,Bs) -> ae(As,Bs,[]).
 
-abe([A|As],[B|Bs],Acc) ->
-    abe(As,Bs,[abs(A-B)|Acc]).
+ae([],[],Acc) ->
+   Acc;
+
+ae([A|As],[B|Bs],Acc) ->
+    ae(As,Bs,[abs(A-B)|Acc]).
 
 % @doc mean average error between the two lists
 mae(As,Bs) ->
-    avg(abe(As,Bs,[])).
+    avg(ae(As,Bs,[])).
 
 %%--------------------------------------------------------------------
 %% @doc calculates the root mean square of the element wise difference of the lists.
