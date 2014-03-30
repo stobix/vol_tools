@@ -21,8 +21,17 @@
          ,nCr_exact/2
          ,reload_app/1
          ,gen_id/0
+         ,microseconds_to_hms/1
         ]).
 
+microseconds_to_hms(MicroTime) ->
+    Time=MicroTime/1000,
+    Hours = trunc(Time/timer:hours(1)),
+    DiffTime1=  Time - (Hours*timer:hours(1)),
+    Minutes = trunc(DiffTime1/timer:minutes(1)),
+    DiffTime2 = DiffTime1 - (Minutes*timer:minutes(1)),
+    Seconds = trunc(DiffTime2/timer:seconds(1)),
+    {Hours,Minutes,Seconds}.
 
 % @doc generates a unique id to be used for whatever.
 gen_id() -> now().

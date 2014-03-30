@@ -11,6 +11,8 @@
     pick_nth/2,
     pick_nth_nonrev/2,
     pick_random/1,
+    select_keyvals/3,
+    select_vals/4,
     reorder/1,
     pick_n/2,
     pick_n_undef/2,
@@ -19,6 +21,27 @@
     split_at/2,
     sequence_split/3
     ]).
+
+-spec select_keyvals(list(any()),pos_integer(),list(any())) -> list(any()).
+select_keyvals(Keys,KeyPos,KeyVals) ->
+    lists:filter(fun(X) -> lists:member(element(KeyPos,X),Keys) end,KeyVals).
+
+-spec select_vals(list(any()),pos_integer(),pos_integer(),list(any())) -> list(any()).
+select_vals(Keys,KeyPos,ValPos,KeyVals) ->
+    {RetVals,_}=lists:foldr(
+        fun(K,{Acc,KV}) -> 
+                case lists:keytake(K,KeyPos,KV) of
+                    {value,KeyVal,OthVals} ->
+                        {[element(ValPos,KeyVal)|Acc],OthVals};
+                    false ->
+                        {[{not_found,K}|Acc],KV}
+                end
+        end,
+        {[],KeyVals},
+        Keys),
+    RetVals.
+
+
 
 -spec sift(function(),list(Thing::any())) -> {list(Thing),list(Thing)}.
 sift(Pred,List) ->

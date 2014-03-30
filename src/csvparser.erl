@@ -8,7 +8,8 @@
     get_next_data/3,
     result_to_csv/1,
     result_to_file/2,
-    result_to_file/3
+    result_to_file/3,
+    lolon_to_file/2
     ]).
 
 % Internal callback exports
@@ -115,7 +116,17 @@ result_to_csv(Result) ->
                                         io_lib:format("~w",[Z]) 
                                 end,
                                 lists:flatten([X,Y])),
-                            ";")) 
+                            ";"));
+                (X) when is_list(X) ->
+                    lists:flatten( 
+                        string:join(
+                            lists:map(
+                                fun
+                                    (Z) -> 
+                                        io_lib:format("~w",[Z]) 
+                                end,
+                                lists:flatten(X)),
+                            ";"))
             end,
             Result),
         "\n").
@@ -133,4 +144,17 @@ result_to_file(FileName,Result=[{A,B}|_]) ->
             "\n"],
 
     result_to_file(FileName,Result,Prelude).
+
+lolon_to_file(FileName,LoLoN) when is_list(LoLoN) andalso is_list(hd(LoLoN)) -> % andalso is_number(hd(hd(LoLoN))) ->
+    NumToList= fun
+        (N) when is_float(N) -> float_to_list(N); 
+        (N) when is_integer(N) -> integer_to_list(N); 
+        (X) -> X 
+    end,
+    ListOfNumToListOfList = fun (LoN) -> lists:map(NumToList,LoN) end,
+    ListNumbers = lists:map(ListOfNumToListOfList,LoLoN),
+    ListToLine=fun(X) -> string:join(X,";") end,
+    Lines=lists:map(ListToLine,ListNumbers),
+    File=string:join(Lines,"\n"),
+    file:write_file(FileName,File).
 
