@@ -19,8 +19,81 @@
     pick_n_random/2,
     sequences/2,
     split_at/2,
-    sequence_split/3
+    sequence_split/3,
+    uminsert/2,
+    uinsert/2,
+    ruminsert/2,
+    ruinsert/2,
+    is_in/2,
+    keyumerge/3,
+    uniq/1
     ]).
+
+
+% TODO: Design and implement funtions that does ([a],[b,a,c]) -> [b,c,a]/[a,b,c] instead of ([a],[b,a,c]) -> [b,a,c].
+
+
+-spec keyumerge(N::pos_integer(),[A::tuple(any())],[B::tuple(any())]) %when N =< size(A) andalso size(A)==size(B) 
+    -> [tuple(any())].
+
+keyumerge(N,A,B) ->
+        keyumerge(N,A,B,[]).
+
+keyumerge(N,[],[],Acc) ->
+        Acc;
+
+keyumerge(N,L1,[],Acc) ->
+        L1++Acc;
+
+keyumerge(N,[],L2,Acc) ->
+        L2++Acc;
+
+keyumerge(N,LL1=[I1|L1],LL2=[I2|L2],Acc) ->
+        A=element(N,I1),
+        B=element(N,I2),
+        if A == B ->
+                        keyumerge(N,L1,L2,[I1|Acc]);
+                A < B ->
+                        keyumerge(N,L1,LL2,[I1|Acc]);
+                A > B ->
+                        keyumerge(N,LL1,L2,[I2|Acc])
+                end.
+    
+
+uniq(L) -> uniq(lists:sort(L),[]).
+
+uniq([],Bs) -> lists:reverse(Bs);
+uniq([A|As],[B|Bs]) when A == B -> uniq(As,[B|Bs]);
+uniq([A|As],Bs) -> uniq(As,[A|Bs]).
+
+
+-spec uminsert([A::any()],[A::any()]) -> [A::any()].
+uminsert(As,Bs) ->
+    lists:foldr(fun uinsert/2,Bs,As).
+
+-spec uinsert(A::any(),[A::any()]) -> [A::any()].
+uinsert(A,Bs) ->
+    case is_in(A,Bs) of
+        true -> Bs;
+        false -> [A|Bs]
+    end.
+
+-spec is_in(A::any(),[A::any()]) -> boolean().
+
+is_in(A,[]) -> false;
+
+is_in(A,[B|Bs]) ->
+    if A==B -> true;
+        true -> is_in(A,Bs)
+    end.
+
+ruinsert(A,Bs) ->
+    lists:reverse(uinsert(A,lists:reverse(Bs))).
+
+ruminsert(As,Bs) ->
+    lists:reverse(uminsert(lists:reverse(As),lists:reverse(Bs))).
+
+
 
 -spec select_keyvals(list(any()),pos_integer(),list(any())) -> list(any()).
 select_keyvals(Keys,KeyPos,KeyVals) ->
