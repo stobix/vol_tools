@@ -22,7 +22,60 @@
          ,reload_app/1
          ,gen_id/0
          ,microseconds_to_hms/1
+         ,callback/1
+         ,callback/2
+         ,add/2
         ]).
+
+
+% General function for adding strange stuff together.
+add(T1={date,_},{date,YMD2}) ->
+    D2=calendar:date_to_gregorian_days(YMD2),
+    add(T1,D2);
+
+add({date,YMD1},D2) when is_integer(D2) ->
+    {date,calendar:gregorian_date_to_days(calendar:date_to_gregorian_days(YMD1)+D2)};
+
+add(D1,{date,YMD2}) when is_integer(D1) ->
+    {date,calendar:gregorian_date_to_days(D1+calendar:date_to_gregorian_days(YMD2))};
+
+add(T1={time,_},{time,HMS2}) ->
+    S2=calendar:time_to_seconds(HMS2),
+    add(T1,S2);
+
+add({time,HMS1},S2) when is_integer(S2) ->
+    {time,calendar:seconds_to_time(calendar:time_to_seconds(HMS1)+S2)};
+
+add(S1,{time,HMS2}) when is_integer(S1)->
+    {time,calendar:seconds_to_time(S1+calendar:time_to_seconds(HMS2))}.
+
+callback(Callback) ->
+    case Callback of
+        none ->
+            none;
+        A when is_pid(A) ->
+            A ! done;
+        {A,B} when is_pid(A) ->
+            A ! B;
+        {A,B} ->
+            spawn(fun() -> A(B) end);
+        A ->
+            spawn(fun() -> A() end)
+    end.
+
+callback(Callback,Msg) ->
+    case Callback of
+        none ->
+            none;
+        A when is_pid(A) ->
+            A ! Msg;
+        {A,B} when is_pid(A) ->
+            A ! {Msg,B};
+        {A,B} ->
+            spawn(fun() -> A(Msg,B) end);
+        A ->
+            spawn(fun() -> A(Msg) end)
+    end.
 
 microseconds_to_hms(MicroTime) ->
     Time=MicroTime/1000,
