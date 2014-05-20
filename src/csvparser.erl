@@ -102,7 +102,7 @@ pick_columns([C|ColumnsToPick],[D|DataList],C,J,Acc) ->
 pick_columns(ColumnsToPick,[_|DataList],C,J,Acc) ->
     pick_columns(ColumnsToPick,DataList,C+1,J,Acc).
 
--spec result_to_csv({list(number()),list(number())}) -> string().
+-spec result_to_csv(list({list(number()),list(number())}|list())) -> string().
 result_to_csv(Result) ->
     string:join(
         lists:map(
@@ -131,7 +131,7 @@ result_to_csv(Result) ->
             Result),
         "\n").
 
--spec result_to_file(FileName::string(),Result::{list(number()),list(number())},Prelude::string()) -> no_return().
+-spec result_to_file(FileName::string(),Result::[{list(number()),list(number())}|list()],Prelude::string()) -> no_return().
 
 result_to_file(FileName,Result,Prelude) ->
     file:write_file(FileName,[Prelude,result_to_csv(Result)]).
