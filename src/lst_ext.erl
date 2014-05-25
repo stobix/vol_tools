@@ -26,9 +26,16 @@
     ruinsert/2,
     is_in/2,
     keyumerge/3,
+    deep_map/2,
     uniq/1
     ]).
 
+deep_map(Fun,[A|B]) ->
+    [deep_map(Fun,A)|deep_map(Fun,B)];
+
+deep_map(Fun,[]) -> [];
+
+deep_map(Fun,A) -> Fun(A).
 
 % TODO: Design and implement funtions that does ([a],[b,a,c]) -> [b,c,a]/[a,b,c] instead of ([a],[b,a,c]) -> [b,a,c].
 
