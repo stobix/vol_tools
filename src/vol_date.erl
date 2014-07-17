@@ -1,3 +1,6 @@
+% @doc This module contains various date and time related functions.
+%
+% Right now, this module only contains addition and subraction of various types of time intervals.
 -module(vol_date).
 
 -export([ add/2
@@ -6,33 +9,40 @@
         ]).
 
 
-% General function for adding strange stuff together.
-%add(T1={date,_},{date,YMD2}) ->
-%    D2=calendar:date_to_gregorian_days(YMD2),
-%    add(T1,D2);
+% @type date() = {YYYY::pos_integer(),MM::pos_integer(),DD::pos_integer()}.
+% @type time() = {HH::pos_integer(),MM::pos_integer(),SS::pos_integer()}.
+% @type time_interval() = {datetime,{date(),time()}} |{date, date()}| {time,time()} | {days,pos_integer()} | {day,pos_integer()} | {seconds,pos_integer()}|{second,pos_integer}.
+% @type time_type() = datetime | time | date | day | days | second | seconds .
+% @doc Subtracts a time interval from another.
 %
-%add({date,YMD1},D2) when is_integer(D2) ->
-%    {date,calendar:gregorian_date_to_days(calendar:date_to_gregorian_days(YMD1)+D2)};
-%
-%add(D1,{date,YMD2}) when is_integer(D1) ->
-%    {date,calendar:gregorian_date_to_days(D1+calendar:date_to_gregorian_days(YMD2))};
-%
-%add(T1={time,_},{time,HMS2}) ->
-%    S2=calendar:time_to_seconds(HMS2),
-%    add(T1,S2);
-%
-%add({time,HMS1},S2) when is_integer(S2) ->
-%    {time,calendar:seconds_to_time(calendar:time_to_seconds(HMS1)+S2)};
-%
-%add(S1,{time,HMS2}) when is_integer(S1)->
-%    {time,calendar:seconds_to_time(S1+calendar:time_to_seconds(HMS2))}.
-
+% Each interval is converted to seconds, and the first subtracted from the other. (Dates are intervals of time from some starting point to the date specified.)
+% The result is then converted back to the type of the first argument and sent back.
+-type date() :: {pos_integer(),pos_integer(),pos_integer()}.
+-type time() :: {pos_integer(),pos_integer(),pos_integer()}.
+-type t(A,B) :: {A,B}.
+-type t_date() :: t(date,date()).
+-type t_time() :: t(time,time()).
+-type t_datetime() :: t(datetime,{date(),time()}).
+-type t_second() :: t(second|seconds,non_neg_integer()).
+-type t_day() :: t(day|days,non_neg_integer()).
+-type time_type() :: date | time | datetime | second | seconds | day | days .
+-type time_interval() :: t_datetime() | t_date() | t_time() | t_second() | t_day().
+    
+-spec sub(time_interval(),time_interval()) -> time_interval().
 sub(A,B) ->
     seconds_to(get_type(A),convert_to_seconds(A)-convert_to_seconds(B)).
 
+% @doc Adds a time interval to another.
+% Each interval is converted to seconds, and then added together.
+% The result is then converted back to the type of the first argument and sent back.
+-spec add(time_interval(),time_interval()) -> time_interval().
 add(A,B) ->
     seconds_to(get_type(A),convert_to_seconds(A)+convert_to_seconds(B)).
 
+% @doc Adds a time interval to another, and converts the result.
+% Each interval is converted to seconds, and then added together.
+% The result is then converted back to the Cast type.
+-spec add(time_type(),time_interval(),time_interval()) -> time_interval().
 add(Cast,A,B) ->
     seconds_to(Cast,convert_to_seconds(A)+convert_to_seconds(B)).
     

@@ -1,3 +1,4 @@
+% @doc This module contains various functions that doesn't fit in any of the categories encompassed by the other modules.
 -module(vol_misc).
 
 -export([restart/1
@@ -27,7 +28,37 @@
         ]).
 
 
-
+% @doc Calls a callback function/process
+%
+% Valid callback types and what they do:
+% <ul>
+% <li>
+% <code>
+% none
+% </code>
+% </li> Does nothing
+% <li>
+% <code>
+% pid()
+% </code>
+% </li> sends the atom 'done' to the pid.
+% <li>
+% <code>
+% {pid(),Thing}
+% </code>
+% </li> sends Thing to the pid
+% <li>
+% <code>
+% {Function,Argument}
+% </code>
+% </li> Spawns a process calling the function with the argument
+% <li>
+% <code>
+% Function
+% </code>
+% </li> Spawns a process calling the function.
+% </ul>
+-spec callback(none | pid() | {pid(),any()} | {fun( (A) -> any() ), A} | fun( () -> any() )) -> no_return().
 callback(Callback) ->
     case Callback of
         none ->
@@ -42,6 +73,37 @@ callback(Callback) ->
             spawn(fun() -> A() end)
     end.
 
+% @doc Calls a callback function/process with a message
+%
+% Valid callback types and what they do:
+% <ul>
+% <li>
+% <code>
+% none
+% </code>
+% </li> Does nothing
+% <li>
+% <code>
+% pid()
+% </code>
+% </li> sends Msg to the pid.
+% <li>
+% <code>
+% {pid(),Thing}
+% </code>
+% </li> sends {Msg,Thing} to the pid
+% <li>
+% <code>
+% {Function,Argument}
+% </code>
+% </li> Spawns a process calling the function with Msg as the first argument, and Argument as the second.
+% <li>
+% <code>
+% Function
+% </code>
+% </li> Spawns a process calling the function with the Msg as argument.
+% </ul>
+-spec callback(none | pid() | {pid(),any()} | {fun( (A,B) -> any() ), A} | fun( () -> any() ),Msg::B) -> no_return().
 callback(Callback,Msg) ->
     case Callback of
         none ->
@@ -65,18 +127,25 @@ microseconds_to_hms(MicroTime) ->
     Seconds = trunc(DiffTime2/timer:seconds(1)),
     {Hours,Minutes,Seconds}.
 
-% @doc generates a unique id to be used for whatever.
+% @doc generates a unique id for arbitrary use.
 gen_id() -> now().
 
+% @doc Restart an application
 restart(Module) ->
     application:stop(Module),
     application:unload(Module),
     application:start(Module).
 
+% @doc A simple faculty function.
 % Why is this not in any standard lib‽
+-spec fac(non_neg_integer()) -> pos_integer().
 fac(0) -> 1;
 fac(N) -> N*fac(N-1).
 
+% @doc A faculty function where each element has a value added to it before multiplying together.
+%
+% fac_plus(N,M) = fac(N+M)/fac(M)
+-spec fac_plus(non_neg_integer(),integer()) -> integer().
 fac_plus(0,_M) -> 1;
 fac_plus(1,_M) -> 1;
 fac_plus(N,M) -> (N+M)*fac_plus(N-1,M).
@@ -97,18 +166,22 @@ nCr(_N,0,Acc) -> Acc;
 nCr(N,K,Acc) -> nCr(N-1,K-1,N/K*Acc).
 
 
+% @doc Find all applications with an .app file in our .ebin directory, and make documentation for them.
 make_documentation() ->
     {ok,Files} = file:list_dir(ebin),
     Relevant_files=lists:filter(fun(X) -> lists:suffix(".app",X) end,Files),
     Stripped_files=lists:map(fun(X) -> string:substr(X,1,length(X)-4) end,Relevant_files),
     lists:map(fun make_documentation/1,Stripped_files).
-
+% @doc Generates documentation for an app, and put the documentation into doc/appname
 make_documentation(Application) when is_atom(Application)->
     edoc:application(Application,'.',[{dir,"doc/"++atom_to_list(Application)}]);
 
 make_documentation(Application) when is_list(Application)->
     edoc:application(list_to_atom(Application),'.',[{dir,"doc/"++Application}]).
 
+% @doc Starts an app, ensuring that all its dependencies are started.
+%
+% This has the same effect as application:ensure_all_started/1 in erts 17.0 or above. In lower versions, it is not present.
 chain(Module) ->
     case application:start(Module) of
         {error,{not_started,A}} ->
@@ -118,6 +191,7 @@ chain(Module) ->
     end.
 
 
+% @doc Restarts an app, ensuring that all its dependencies are "rechained" unless they're already started.
 rechain(Module) ->
     case restart(Module) of
         {error,{not_started,A}} ->
@@ -126,9 +200,12 @@ rechain(Module) ->
         A -> A
     end.
 
+% @doc Pick the first element from a tuple. Good for use in maps, e.g. list:map(fun vol_misc:fst/1,Things) instead of the (slightly) longer lists:map(fun (X) -> element(1,X) end,Things).
 fst(Tuple) -> element(1,Tuple).
+% @doc Pick the second element from a tuple. Good for use in maps.
 snd(Tuple) -> element(2,Tuple).
 
+% @doc Replaces any leading $~ with the current user's home directory.
 fix_home([$~,$/|Name]) ->
     [os:getenv("HOME"),"/",Name];
 
@@ -136,17 +213,21 @@ fix_home(A) -> A.
 
 %Can this be implemented as a function? 
 % f(I),I=fun() -> f(F),f(G),f(H),{ok,F}=file:list_dir("src/"),G=lists:filter(fun([$\.|_]) -> false; (A) -> (string:rstr(A,".orig")==0) end,F),H=lists:map(fun(X) -> l(list_to_atom(string:substr(X,1,string:len(X)-4))) end,G),io:format("~p",[H]) end, (make:all([{d,timestamp},{d,debug},{d,test},debug_info])==up_to_date) andalso I().
+% @doc Recompiles and reloads all files in "./src".
 recompile()->
     recompile("src/").
 
+% @doc Recompiles and reloads all files in Dir.
 recompile(Dir)->
     {ok,Files}=file:list_dir(Dir),
     (make:all()==up_to_date) andalso 
         reload_files(valid_files(Files)).
 
+% @doc Recompiles and reloads all files in "./src", updating all recompiled and running modules.
 recompile_live() ->
     recompile_live("src/").
 
+% @doc Recompiles and reloads all files in Dir, updating all recompiled and running modules.
 recompile_live(Dir) ->
     {ok,Files}=file:list_dir(Dir),
     (make:all()==up_to_date) andalso 
@@ -187,6 +268,11 @@ reload_files_live(Files) ->
               Files).
 
 
+% @doc reload all files from all dependencies of the OTP app residing in dir.
+%
+% More specifically, this tries to reload all modules corresponding to all erl files in all src directories in the deps directory/ies and ., recursively.
+% Returns a list of successfully reloaded modules.
+
 reload_app(Dir) ->
     case file:list_dir(Dir++"/src/") of
         {ok,Files} ->
@@ -206,7 +292,7 @@ reload_app(Dir) ->
     end.
 
 
-
+% @doc Flips the first and second position in each tuple in a list of 2-tuples.
 flip([]) -> [];
 flip([{A,B}|ListOfTuples]) ->[{B,A}|flip(ListOfTuples)].
 
@@ -214,6 +300,7 @@ dispatch(Prog) ->
     systools:make_script(Prog,[local]),
     systools:make_tar(Prog,[{erts, "/usr/lib/erlang"}]).
 
+% @deprecated This is essentially integer_to_list/1, which is probably better defined anyways.
 number_to_string(Number) when Number < 10 -> [48+Number];
 number_to_string(Number) -> number_to_string(trunc(Number/10))++[ 48+(Number rem 10)].
 

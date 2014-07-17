@@ -1,3 +1,4 @@
+% @doc This module contains various statistics functions.
 -module(vol_stat).
 
 -export([
@@ -13,11 +14,12 @@
     
 
 
-% @doc  Returns the average of the list
+% @doc  Returns the average of a list
+% avg([1,2,3]) -> 2.0
 avg(List)->
 	lists:sum(List)/length(List).
 
-% @doc  Returns the standard deviation of the list
+% @doc  Returns the standard deviation of a list
 std(List)->
 	Avg = avg(List),
 	std(List,Avg,[]).
@@ -43,9 +45,9 @@ mse(As,Bs) ->
     math:sqrt(lists:sum(sse(As,Bs,[]))/length(As)).
 
 % @doc sum of absolute errors of the two listes
-
 sae(As,Bs) -> lists:sum(ae(As,Bs,[])).
 
+% @doc a list of all absolute errors between corresponding elements of the two lists.
 ae(As,Bs) -> ae(As,Bs,[]).
 
 ae([],[],Acc) ->
