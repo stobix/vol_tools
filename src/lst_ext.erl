@@ -28,6 +28,8 @@
     ruinsert/2,
     is_in/2,
     keyumerge/3,
+    keyudmerge/3,
+    unsort_keymerge/3,
     deep_map/2,
     uniq/1
     ]).
@@ -53,6 +55,7 @@ deep_map(Fun,A) -> Fun(A).
     % @doc Makes a distinct, sorted merge between two sorted tuple lists.
     % If two elements have the same key, the element from the first list is used.
     % This is basically lists:umerge for keyval lists.
+    % This seems to be part of the 17.0 release, but is kept here for backwards compatibility.
     keyumerge(N,A,B) ->
     keyumerge(N,A,B,[]).
 
@@ -77,14 +80,64 @@ deep_map(Fun,A) -> Fun(A).
 keyumerge(N,LL1,L2,[I2|Acc])
     end.
 
+-spec keyudmerge(N::pos_integer(),[A::tuple(any())],[B::tuple(any())]) %when N =< size(A) andalso size(A)==size(B) 
+    -> [tuple(any())].
 
-    % @doc Only keeps one of each element.
-    % Comparison by '=='/2.
-    uniq(L) -> uniq(lists:sort(L),[]).
+    % @doc Makes a distinct, sorted merge between two sorted tuple lists.
+    % If two elements have the same key, the element from the first list is used.
+    % This is basically lists:umerge for keyval lists.
+    keyudmerge(N,A,B) ->
+    keyudmerge(N,A,B,[],[]).
 
-    uniq([],Bs) -> lists:reverse(Bs);
-    uniq([A|As],[B|Bs]) when A == B -> uniq(As,[B|Bs]);
-    uniq([A|As],Bs) -> uniq(As,[A|Bs]).
+    keyudmerge(_N,[],[],Acc,Bcc) ->
+    {Acc,lists:reverse(Bcc)};
+
+    keyudmerge(_N,L1,[],Acc,Bcc) ->
+    {lists:reverse(Acc)++L1,lists:reverse(Bcc)};
+
+    keyudmerge(_N,[],L2,Acc,Bcc) ->
+    {lists:reverse(Acc)++L2,lists:reverse(Bcc)};
+
+    keyudmerge(N,LL1=[I1|L1],LL2=[I2|L2],Acc,Bcc) ->
+    A=element(N,I1),
+    B=element(N,I2),
+    if 
+        A == B ->
+            keyudmerge(N,L1,L2,[I1|Acc],[I2|Bcc]);
+        A < B ->
+            keyudmerge(N,L1,LL2,[I1|Acc],Bcc);
+        A > B ->
+            keyudmerge(N,LL1,L2,[I2|Acc],Bcc)
+    end.
+
+unsort_keymerge(N,[],B) -> {B,[]};
+
+unsort_keymerge(N,A,B) ->
+    unsort_keymerge(N,lists:reverse(A),B,[]).
+
+unsort_keymerge(N,A,[],Bcc) ->
+    {lists:reverse(A),lists:reverse(Bcc)};
+
+unsort_keymerge(N,A,B,Bcc) ->
+    Item=hd(B),
+    case lists:keymember(element(N,Item),N,A) 
+        of true ->
+            unsort_keymerge(N,A,tl(B),[Item|Bcc])
+        ; false ->
+            unsort_keymerge(N,[Item|A],tl(B),Bcc)
+    end.
+
+            
+
+
+
+% @doc Only keeps one of each element.
+% Comparison by '=='/2.
+uniq(L) -> uniq(lists:sort(L),[]).
+
+uniq([],Bs) -> lists:reverse(Bs);
+uniq([A|As],[B|Bs]) when A == B -> uniq(As,[B|Bs]);
+uniq([A|As],Bs) -> uniq(As,[A|Bs]).
 
 
 % @doc unique map insert
