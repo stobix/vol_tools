@@ -13,6 +13,7 @@
          ,snd/1
          ,make_documentation/1
          ,make_documentation/0
+         ,mkdoc_deps/0
          ,number_to_string/1
          ,fix_home/1
          ,recompile_live/0
@@ -178,6 +179,15 @@ make_documentation(Application) when is_atom(Application)->
 
 make_documentation(Application) when is_list(Application)->
     edoc:application(list_to_atom(Application),'.',[{dir,"doc/"++Application}]).
+
+mkdoc_deps() ->
+    {ok,Deps} = file:list_dir(deps),
+    lists:foreach(fun mkdoc_deps/1,Deps),
+    make_documentation().
+      
+mkdoc_deps(Dep) ->
+    spawn(fun() ->edoc:application(list_to_atom(Dep),"deps/"++Dep,[{dir,"doc/deps/"++Dep}]) end).
+
 
 % @doc Starts an app, ensuring that all its dependencies are started.
 %
