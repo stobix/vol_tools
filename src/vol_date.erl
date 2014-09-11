@@ -24,9 +24,10 @@
 -type t_time() :: t(time,time()).
 -type t_datetime() :: t(datetime,{date(),time()}).
 -type t_second() :: t(second|seconds,non_neg_integer()).
+-type t_hour() :: t(hour|hours,non_neg_integer()).
 -type t_day() :: t(day|days,non_neg_integer()).
--type time_type() :: date | time | datetime | second | seconds | day | days .
--type time_interval() :: t_datetime() | t_date() | t_time() | t_second() | t_day().
+-type time_type() :: date | time | datetime | second | seconds | day | days | hour | hours .
+-type time_interval() :: t_datetime() | t_date() | t_time() | t_second() | t_day() | t_hour().
     
 -spec sub(time_interval(),time_interval()) -> time_interval().
 sub(A,B) ->
@@ -55,6 +56,9 @@ convert_to_seconds({time,HMS})           -> calendar:time_to_seconds(HMS);
 
 convert_to_seconds({days,D})             -> D*86400;
 convert_to_seconds({day,D})             -> D*86400;
+
+convert_to_seconds({hours,D})             -> D*3600;
+convert_to_seconds({hour,D})             -> D*3600;
 
 convert_to_seconds({date,YMD})           -> calendar:date_to_gregorian_days(YMD)*86400;
 
