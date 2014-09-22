@@ -6,6 +6,7 @@
 -export([ add/2
          ,add/3
         ,sub/2
+        ,convert_to/2
         ]).
 
 
@@ -32,6 +33,11 @@
 -spec sub(time_interval(),time_interval()) -> time_interval().
 sub(A,B) ->
     seconds_to(get_type(A),convert_to_seconds(A)-convert_to_seconds(B)).
+
+
+-spec convert_to(A::time_type(),time_interval()) -> time_interval().
+convert_to(Type,Time) ->
+    seconds_to(Type,convert_to_seconds(Time)).
 
 % @doc Adds a time interval to another.
 % Each interval is converted to seconds, and then added together.
@@ -80,6 +86,8 @@ seconds_to(date,S) ->
 seconds_to(days,S) ->
     {D,_HMS}=calendar:seconds_to_daystime(S),
     {days,D};
+
+seconds_to(hours,S) -> {hours,trunc(S/3600)};
 
 seconds_to(seconds,S) -> S;
 
