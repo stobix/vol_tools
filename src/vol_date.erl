@@ -7,6 +7,8 @@
          ,add/3
         ,sub/2
         ,convert_to/2
+        ,get_type/1
+        ,truncate_to_hours/1
         ]).
 
 
@@ -83,13 +85,23 @@ seconds_to(date,S) ->
     {YMD,_}=calendar:gregorian_seconds_to_datetime(S),
     {date,YMD};
 
+seconds_to(day,S) ->
+    seconds_to(days,S);
+
 seconds_to(days,S) ->
     {D,_HMS}=calendar:seconds_to_daystime(S),
     {days,D};
 
 seconds_to(hours,S) -> {hours,trunc(S/3600)};
+seconds_to(hour,S) -> {hours,trunc(S/3600)};
 
 seconds_to(seconds,S) -> S;
 
 seconds_to(integer,S) -> S.
+
+-spec truncate_to_hours(time_interval()) -> time_interval().
+truncate_to_hours(Time) -> 
+    Type = get_type(Time),
+    Hours = convert_to(hours,Time),
+    convert_to(Type,Hours).
 
