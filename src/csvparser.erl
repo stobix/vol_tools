@@ -13,7 +13,8 @@
     result_to_csv/1,
     result_to_file/2,
     result_to_file/3,
-    lolon_to_file/2
+    lolon_to_file/2,
+    lolon_to_file_comma/2
     ]).
 
 % Internal callback exports
@@ -23,11 +24,11 @@
 
 -type csv_col_list_spec() :: [non_neg_integer()].
 -type csv_col_tuple_spec() :: {[non_neg_integer()],[non_neg_integer()]}.
--type csv_col_spec() :: csv_col_list_spec() | csv_col_tuple_spec().
+%-type csv_col_spec() :: csv_col_list_spec() | csv_col_tuple_spec().
 
 -type csv_col_tuple_data() :: {[non_neg_integer()],[non_neg_integer()]}.
 -type csv_col_list_data() :: non_neg_integer().
--type csv_col_data() :: [csv_col_list_data()] | [csv_col_tuple_data()].
+%-type csv_col_data() :: [csv_col_list_data()] | [csv_col_tuple_data()].
 
 % @doc Extract all relevant csv data, excluding the first (header) line, from a file.
 %
@@ -231,3 +232,15 @@ lolon_to_file(FileName,LoLoN) when is_list(LoLoN) andalso is_list(hd(LoLoN)) -> 
     File=string:join(Lines,"\n"),
     file:write_file(FileName,File).
 
+lolon_to_file_comma(FileName,LoLoN) when is_list(LoLoN) andalso is_list(hd(LoLoN)) -> % andalso is_number(hd(hd(LoLoN))) ->
+    NumToList= fun
+        (N) when is_float(N) -> string:join(string:tokens(float_to_list(N),"."),",");
+        (N) when is_integer(N) -> integer_to_list(N); 
+        (X) -> X 
+    end,
+    ListOfNumToListOfList = fun (LoN) -> lists:map(NumToList,LoN) end,
+    ListNumbers = lists:map(ListOfNumToListOfList,LoLoN),
+    ListToLine=fun(X) -> string:join(X,";") end,
+    Lines=lists:map(ListToLine,ListNumbers),
+    File=string:join(Lines,"\n"),
+    file:write_file(FileName,File).
