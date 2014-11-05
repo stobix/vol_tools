@@ -31,7 +31,9 @@
     keyudmerge/3,
     unsort_keymerge/3,
     deep_map/2,
-    uniq/1
+    uniq/1,
+    keyuniq/2,
+    skeyuniq/2
     ]).
 
 % @doc Maps a function to all elements of a deep list.
@@ -110,12 +112,12 @@ keyumerge(N,LL1,L2,[I2|Acc])
             keyudmerge(N,LL1,L2,[I2|Acc],Bcc)
     end.
 
-unsort_keymerge(N,[],B) -> {B,[]};
+unsort_keymerge(_N,[],B) -> {B,[]};
 
 unsort_keymerge(N,A,B) ->
     unsort_keymerge(N,lists:reverse(A),B,[]).
 
-unsort_keymerge(N,A,[],Bcc) ->
+unsort_keymerge(_N,A,[],Bcc) ->
     {lists:reverse(A),lists:reverse(Bcc)};
 
 unsort_keymerge(N,A,B,Bcc) ->
@@ -139,6 +141,22 @@ uniq([],Bs) -> lists:reverse(Bs);
 uniq([A|As],[B|Bs]) when A == B -> uniq(As,[B|Bs]);
 uniq([A|As],Bs) -> uniq(As,[A|Bs]).
 
+% @doc Only keeps one of each element with the key at position Key.
+% Comparison by '=='/2.
+keyuniq(Key,L) -> keyuniq(Key,lists:keysort(Key,L),[]).
+
+keyuniq(_Key,[],Bs) -> lists:reverse(Bs);
+keyuniq(Key,[A|As],[B|Bs]) when element(Key,A) == element(Key,B) -> keyuniq(Key,As,[B|Bs]);
+keyuniq(Key,[A|As],Bs) -> keyuniq(Key,As,[A|Bs]).
+
+% @doc Only keeps one of each element with the key at position Key. Does not sort the list beforehand.
+% Uniqueness is only guaranteed per group. Unless keys are already grouped together, this will result in several groups with the same key.
+% Comparison by '=='/2.
+skeyuniq(Key,L) -> skeyuniq(Key,L,[]).
+
+skeyuniq(_Key,[],Bs) -> lists:reverse(Bs);
+skeyuniq(Key,[A|As],[B|Bs]) when element(Key,A) == element(Key,B) -> skeyuniq(Key,As,[B|Bs]);
+skeyuniq(Key,[A|As],Bs) -> skeyuniq(Key,As,[A|Bs]).
 
 % @doc unique map insert
 %
