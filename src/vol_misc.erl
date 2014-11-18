@@ -26,8 +26,24 @@
          ,microseconds_to_hms/1
          ,callback/1
          ,callback/2
+         ,thing_to_number/1
         ]).
 
+
+thing_to_number(X) when is_number(X) -> X;
+
+thing_to_number(X) when is_list(X) ->
+    try list_to_integer(X) of
+        Y -> Y
+    catch
+        error:badarg ->
+            list_to_float(X) 
+    end;
+        
+thing_to_number(X) when is_atom(X) -> thing_to_number(atom_to_list(X));
+
+thing_to_number(_) -> error(badarg).
+        
 
 % @doc Calls a callback function/process
 %
@@ -311,6 +327,6 @@ dispatch(Prog) ->
     systools:make_tar(Prog,[{erts, "/usr/lib/erlang"}]).
 
 % @deprecated This is essentially integer_to_list/1, which is probably better defined anyways.
-number_to_string(Number) when Number < 10 -> [48+Number];
-number_to_string(Number) -> number_to_string(trunc(Number/10))++[ 48+(Number rem 10)].
+number_to_string(Number) when is_integer(Number) -> integer_to_list(Number);
+number_to_string(Number) when is_float(Number) -> io_lib:format("~p",[Number]).
 
