@@ -33,8 +33,43 @@
     deep_map/2,
     uniq/1,
     keyuniq/2,
-    skeyuniq/2
+    skeyuniq/2,
+    lunzip/1,
+    unzip/1,
+    create_empty_lol/1,
+    create_empty_tol/1,
+    assign_tuple/2
     ]).
+
+% @doc unzips a list of ntuples into an ntuple of n lists
+unzip(LoT) when size(hd(LoT)) == 2 -> lists:unzip(LoT);
+unzip(LoT) when size(hd(LoT)) == 3 -> lists:unzip3(LoT);
+unzip(LoT) -> list_to_tuple(lunzip(LoT)).
+
+% @doc unzips a list of ntuples into an list of n lists
+lunzip(LoL) ->
+    Size=length(hd(LoL)),
+    LoL1=create_empty_lol(Size),
+    lists:map(fun lists:reverse/1,lists:foldl(fun assign_tuple/2 ,LoL1,LoL)).
+
+create_empty_tol(N) -> list_to_tuple(create_empty_lol(N)).
+
+create_empty_lol(0) ->[];
+create_empty_lol(N) ->
+    [[]|create_empty_lol(N-1)].
+
+assign_tuple(List,LoL) ->
+    assign_tuple(List,LoL,[]).
+
+assign_tuple([],[],Acc) ->
+    lists:reverse(Acc);
+    
+assign_tuple(List,LoL,Acc) ->
+    L=hd(List),
+    O=hd(LoL),
+    assign_tuple(tl(List),tl(LoL),[[L|O]|Acc]).
+    
+    
 
 % @doc Maps a function to all elements of a deep list.
 % E.g: deep_map(fun(X) -> X + 1 end, [[1,[2]],3]) ->  [[2,[3]],4].
@@ -85,9 +120,9 @@ keyumerge(N,LL1,L2,[I2|Acc])
 -spec keyudmerge(N::pos_integer(),[A::tuple(any())],[B::tuple(any())]) %when N =< size(A) andalso size(A)==size(B) 
     -> [tuple(any())].
 
-    % @doc Makes a distinct, sorted merge between two sorted tuple lists.
-    % If two elements have the same key, the element from the first list is used.
-    % This is basically lists:umerge for keyval lists.
+% @doc Makes a distinct, sorted merge between two sorted tuple lists.
+% If two elements have the same key, the element from the first list is used.
+% This is basically lists:umerge for keyval lists.
     keyudmerge(N,A,B) ->
     keyudmerge(N,A,B,[],[]).
 
