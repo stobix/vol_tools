@@ -30,7 +30,10 @@
         ]).
 
 
+
 thing_to_number(X) when is_number(X) -> X;
+
+thing_to_number(X) when is_binary(X) -> thing_to_number(binary_to_list(X));
 
 thing_to_number(X) when is_list(X) ->
     try list_to_integer(X) of
