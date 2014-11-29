@@ -17,6 +17,7 @@
     reorder/1,
     pick_n/2,
     pick_n/3,
+    pick_elems/2,
     pick_n_undef/2,
     pick_n_random/2,
     sequences/2,
@@ -38,7 +39,10 @@
     unzip/1,
     create_empty_lol/1,
     create_empty_tol/1,
-    assign_tuple/2
+    assign_tuple/2,
+    group/1,
+    group_by_nth/2,
+    set_equiv/2
     ]).
 
 % @doc unzips a list of ntuples into an ntuple of n lists
@@ -518,3 +522,52 @@ pick_n(A,B,Y) -> pick_n_(A,B,Y,[]).
 pick_n_(0,_,_Y,Acc) -> lists:reverse(Acc);
 pick_n_(N,[L|Ls],_Y,Acc) -> pick_n_(N-1,Ls,[L|Acc]);
 pick_n_(N,[],Y,Acc) -> pick_n_(N-1,[],[Y|Acc]).
+
+% @doc pick some elements from a list
+%
+% Returns the element from the second list whose index are in the first list.
+
+pick_elems(Elems,List) -> lists:map(fun(N) -> lists:nth(N,List) end,Elems).
+
+group_(Thing,false) when is_list(Thing) ->
+    {Key,Other}=lst_ext:pick_nth(Thing,1),
+    {Key,[Other],[]};
+    
+group_(Thing,{OldKey,Acc,Bcc}) when is_list(Thing) ->
+    {Key,Other}=lst_ext:pick_nth(Thing,1),
+    if
+        Key==OldKey ->
+            {OldKey,[Other|Acc],Bcc};
+        true ->
+            {Key,[Other],[{OldKey,lists:reverse(Acc)}|Bcc]}
+    end.
+
+group(LoL) ->
+    {LastKey,LastAcc,Bcc}=lists:foldl(fun group_/2,false,LoL),
+    [{LastKey,LastAcc}|Bcc].
+    
+
+group_by_nth_(Elem) ->
+    fun 
+        (Thing,false) when is_list(Thing) ->
+            {Key,Other}=lst_ext:pick_nth(Thing,Elem),
+            {Key,[Other],[]};
+        (Thing,{OldKey,Acc,Bcc}) when is_list(Thing) ->
+            {Key,Other}=lst_ext:pick_nth(Thing,Elem),
+            if
+                Key==OldKey ->
+                    {OldKey,[Other|Acc],Bcc};
+                true ->
+                    {Key,[Other],[{OldKey,Acc}|Bcc]}
+            end
+    end.
+
+group_by_nth(Elem,LoL) ->
+    Fun = group_by_nth_(Elem),
+    {LastKey,LastAcc,Bcc}=lists:foldl(Fun,false,LoL),
+    lists:reverse([{LastKey,lists:reverse(LastAcc)}|Bcc]).
+
+set_equiv(L1,L2) ->
+    S1=sets:from_list(L1),
+    S2=sets:from_list(L2),
+    sets:is_subset(S1,S2) andalso sets:is_subset(S2,S1).
