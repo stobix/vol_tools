@@ -27,9 +27,13 @@
          ,callback/1
          ,callback/2
          ,thing_to_number/1
+         ,boolify/1
         ]).
 
 
+
+boolify(false) -> false;
+boolify(_) -> true.
 
 thing_to_number(X) when is_number(X) -> X;
 

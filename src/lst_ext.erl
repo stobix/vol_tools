@@ -32,6 +32,8 @@
     keyudmerge/3,
     unsort_keymerge/3,
     deep_map/2,
+    deep_foldl/3,
+    deep_mapfoldl/3,
     uniq/1,
     keyuniq/2,
     skeyuniq/2,
@@ -86,6 +88,26 @@ deep_map(Fun,[A|B]) ->
 deep_map(_Fun,[]) -> [];
 
 deep_map(Fun,A) -> Fun(A).
+
+-spec deep_foldl(fun((A,Acc) -> B),Acc,List::deep_list(A)) -> B.
+
+deep_foldl(Fun,Acc,[A|B]) ->
+    deep_foldl(Fun,deep_foldl(Fun,Acc,A),B);
+
+deep_foldl(_Fun,Acc,[]) -> Acc;
+
+deep_foldl(Fun,Acc,A) -> Fun(A,Acc).
+
+-spec deep_mapfoldl(fun((A,Acc) -> {B,Acc}),Acc,List::deep_list(A)) -> {deep_list(B),Acc}.
+
+deep_mapfoldl(Fun,Acc,[A|As]) ->
+    {B,Bcc} = deep_mapfoldl(Fun,Acc,A),
+    {C,Ccc} = deep_mapfoldl(Fun,Bcc,As),
+    {[B | C],Ccc};
+
+deep_mapfoldl(_Fun,Acc,[]) -> {[],Acc};
+
+deep_mapfoldl(Fun,Acc,A) -> Fun(A,Acc).
 
 % TODO: Design and implement funtions that does ([a],[b,a,c]) -> [b,c,a]/[a,b,c] instead of ([a],[b,a,c]) -> [b,a,c].
 
