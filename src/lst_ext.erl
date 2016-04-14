@@ -91,6 +91,7 @@ deep_map(Fun,A) -> Fun(A).
 
 -spec deep_foldl(fun((A,Acc) -> B),Acc,List::deep_list(A)) -> B.
 
+% @doc Folds  a function over all elements of a deep list.
 deep_foldl(Fun,Acc,[A|B]) ->
     deep_foldl(Fun,deep_foldl(Fun,Acc,A),B);
 
@@ -112,8 +113,8 @@ deep_mapfoldl(Fun,Acc,A) -> Fun(A,Acc).
 % TODO: Design and implement funtions that does ([a],[b,a,c]) -> [b,c,a]/[a,b,c] instead of ([a],[b,a,c]) -> [b,a,c].
 
 
--spec keyumerge(N::pos_integer(),[A::tuple(any())],[B::tuple(any())]) %when N =< size(A) andalso size(A)==size(B) 
-    -> [tuple(any())].
+-spec keyumerge(N::pos_integer(),[A::tuple()],[B::tuple()]) %when N =< size(A) andalso size(A)==size(B) 
+    -> [tuple()].
 
     % @doc Makes a distinct, sorted merge between two sorted tuple lists.
     % If two elements have the same key, the element from the first list is used.
@@ -143,8 +144,8 @@ deep_mapfoldl(Fun,Acc,A) -> Fun(A,Acc).
 keyumerge(N,LL1,L2,[I2|Acc])
     end.
 
--spec keyudmerge(N::pos_integer(),[A::tuple(any())],[B::tuple(any())]) %when N =< size(A) andalso size(A)==size(B) 
-    -> [tuple(any())].
+-spec keyudmerge(N::pos_integer(),[A::tuple()],[B::tuple()]) %when N =< size(A) andalso size(A)==size(B) 
+    -> [tuple()].
 
 % @doc Makes a distinct, sorted merge between two sorted tuple lists.
 % If two elements have the same key, the element from the first list is used.
@@ -273,7 +274,7 @@ ruminsert(As,Bs) ->
 % Example:
 % select_keyvals([a],2,[{a,x,z},{b,a},{c,a,w}]) -> [{b,a},{c,a,w}].
 
--spec select_keyvals([any()],pos_integer(),[tuple(X)]) -> [tuple(X)].
+-spec select_keyvals([any()],pos_integer(),[tuple()]) -> [tuple()].
 select_keyvals(Keys,KeyPos,KeyVals) ->
     lists:filter(fun(X) -> lists:member(element(KeyPos,X),Keys) end,KeyVals).
 
