@@ -6,6 +6,7 @@
 -export([ add/2
          ,add/3
         ,sub/2
+        ,sub/3
         ,convert_to/2
         ,get_type/1
         ,truncate_to_hours/1
@@ -33,8 +34,13 @@
 -type time_interval() :: t_datetime() | t_date() | t_time() | t_second() | t_day() | t_hour().
     
 -spec sub(time_interval(),time_interval()) -> time_interval().
+
 sub(A,B) ->
-    seconds_to(get_type(A),convert_to_seconds(A)-convert_to_seconds(B)).
+    sub(get_type(A),A,B).
+
+-spec sub(time_type(),time_interval(),time_interval()) -> time_interval().
+sub(Type,A,B) ->
+    seconds_to(Type,convert_to_seconds(A)-convert_to_seconds(B)).
 
 
 -spec convert_to(A::time_type(),time_interval()) -> time_interval().
