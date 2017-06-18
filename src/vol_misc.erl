@@ -11,7 +11,7 @@
          ,fst/1
          ,flip/1
          ,snd/1
-         ,make_documentation/1
+         %,make_documentation/1
          ,make_documentation/0
          ,mkdoc_deps/0
          ,number_to_string/1
@@ -190,26 +190,44 @@ nCr(_N,0,Acc) -> Acc;
 nCr(N,K,Acc) -> nCr(N-1,K-1,N/K*Acc).
 
 
-% @doc Find all applications with an .app file in our .ebin directory, and make documentation for them.
+% @doc Make documentation for all .app's in ./ebin
 make_documentation() ->
     {ok,Files} = file:list_dir(ebin),
     Relevant_files=lists:filter(fun(X) -> lists:suffix(".app",X) end,Files),
     Stripped_files=lists:map(fun(X) -> string:substr(X,1,length(X)-4) end,Relevant_files),
     lists:map(fun make_documentation/1,Stripped_files).
+
 % @doc Generates documentation for an app, and put the documentation into doc/appname
 make_documentation(Application) when is_atom(Application)->
-    edoc:application(Application,'.',[{dir,"doc/"++atom_to_list(Application)}]);
+    try
+        edoc:application(Application,'.',[{dir,"doc/"++atom_to_list(Application)}])
+    of
+    V -> {Application,V}
+    catch
+        E:F -> {Application,{E,F}}
+    end;
 
-make_documentation(Application) when is_list(Application)->
-    edoc:application(list_to_atom(Application),'.',[{dir,"doc/"++Application}]).
+make_documentation(Application) when is_list(Application)-> make_documentation(list_to_atom(Application)).
 
+% @doc Make documentation for all apps in ./ebin and ./deps, placing them in a subdir in ./doc or ./doc/deps, respectively 
 mkdoc_deps() ->
     {ok,Deps} = file:list_dir(deps),
-    lists:foreach(fun mkdoc_deps/1,Deps),
-    make_documentation().
+    lists:foreach(fun (X) -> mkdoc_deps(X,self()) end ,Deps),
+    Subs=lists:map(fun (X) -> receive {X,Thing} -> {list_to_atom(X),Thing} end end,Deps),
+    make_documentation()++Subs.
       
-mkdoc_deps(Dep) ->
-    spawn(fun() ->edoc:application(list_to_atom(Dep),"deps/"++Dep,[{dir,"doc/deps/"++Dep}]) end).
+mkdoc_deps(Dep,Pid) ->
+    spawn(
+        fun
+            () ->
+                Pid!{Dep,
+                    try edoc:application(list_to_atom(Dep),"deps/"++Dep,[{dir,"doc/deps/"++Dep}]) of
+                        V -> V
+                    catch
+                        E:F -> {E,F}
+                    end
+                    } 
+        end).
 
 
 % @doc Starts an app, ensuring that all its dependencies are started.
