@@ -2,7 +2,7 @@
  [
   {description, ""},
   {vsn, "1"},
-  {registered, [lst_ext]},
+  {registered, []},
   {applications, [
                   kernel,
                   stdlib
