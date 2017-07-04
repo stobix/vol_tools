@@ -23,8 +23,8 @@
     sequences/2,
     split_at/2,
     sequence_split/3,
-    uminsert/2,
     uinsert/2,
+    uminsert/2,
     ruminsert/2,
     ruinsert/2,
     is_in/2,
@@ -47,23 +47,34 @@
     set_equiv/2
     ]).
 
-% @doc unzips a list of ntuples into an ntuple of n lists
+-spec unzip(ListOfTuples::[tuple()]) -> TupleOfLists::tuple().
+% @doc unzips a list of ntuples with the same size N into an ntuple with N lists
+%
+% Calls lists:unzip/1, lists:unzip3/1 or lunzip/1 as needed.
 unzip(LoT) when size(hd(LoT)) == 2 -> lists:unzip(LoT);
 unzip(LoT) when size(hd(LoT)) == 3 -> lists:unzip3(LoT);
 unzip(LoT) -> list_to_tuple(lunzip(LoT)).
 
-% @doc unzips a list of ntuples into an list of n lists
+-spec lunzip(ListOfLists::[[]]) -> TupleOfLists::tuple().
+% @doc unzips a list of lists of size N into an list of N lists
 lunzip(LoL) ->
     Size=length(hd(LoL)),
     LoL1=create_empty_lol(Size),
     lists:map(fun lists:reverse/1,lists:foldl(fun assign_tuple/2 ,LoL1,LoL)).
 
+% @private
+% @doc
+% creates an empty tuple of lists structure
 create_empty_tol(N) -> list_to_tuple(create_empty_lol(N)).
 
+% @private
+% creates an empty list of lists structure
 create_empty_lol(0) ->[];
 create_empty_lol(N) ->
     [[]|create_empty_lol(N-1)].
 
+% @private
+% Puts each elemet of List in front of the list in LoL at the same position.
 assign_tuple(List,LoL) ->
     assign_tuple(List,LoL,[]).
 
@@ -77,11 +88,15 @@ assign_tuple(List,LoL,Acc) ->
     
     
 
-% @doc Maps a function to all elements of a deep list.
-% E.g: deep_map(fun(X) -> X + 1 end, [[1,[2]],3]) ->  [[2,[3]],4].
 -type deep_list(A) ::[ A | deep_list(A)].
--spec deep_map(fun((A) -> B),List::deep_list(A)) -> B.
+-spec deep_map(fun((A) -> B),List::deep_list(A)) -> deep_list(B).
 
+% @doc Maps a function to all elements of a deep list.
+%
+% <code>
+% > {@module}:deep_map(fun(X) -> X + 1 end, [[1,[2]],3]).<br/>
+%  [[2,[3]],4]<br/>
+% </code>
 deep_map(Fun,[A|B]) ->
 [deep_map(Fun,A)|deep_map(Fun,B)];
 
@@ -89,7 +104,7 @@ deep_map(_Fun,[]) -> [];
 
 deep_map(Fun,A) -> Fun(A).
 
--spec deep_foldl(fun((A,Acc) -> B),Acc,List::deep_list(A)) -> B.
+-spec deep_foldl(fun((A,Acc) -> Acc),Acc,List::deep_list(A)) -> Acc.
 
 % @doc Folds  a function over all elements of a deep list.
 deep_foldl(Fun,Acc,[A|B]) ->
@@ -100,6 +115,7 @@ deep_foldl(_Fun,Acc,[]) -> Acc;
 deep_foldl(Fun,Acc,A) -> Fun(A,Acc).
 
 -spec deep_mapfoldl(fun((A,Acc) -> {B,Acc}),Acc,List::deep_list(A)) -> {deep_list(B),Acc}.
+% @doc A {@link lists:mapfoldl/3} over a deep list
 
 deep_mapfoldl(Fun,Acc,[A|As]) ->
     {B,Bcc} = deep_mapfoldl(Fun,Acc,A),
@@ -114,66 +130,76 @@ deep_mapfoldl(Fun,Acc,A) -> Fun(A,Acc).
 
 
 -spec keyumerge(N::pos_integer(),[A::tuple()],[B::tuple()]) %when N =< size(A) andalso size(A)==size(B) 
-    -> [tuple()].
+-> [tuple()].
 
-    % @doc Makes a distinct, sorted merge between two sorted tuple lists.
-    % If two elements have the same key, the element from the first list is used.
-    % This is basically lists:umerge for keyval lists.
-    % This seems to be part of the 17.0 release, but is kept here for backwards compatibility.
-    keyumerge(N,A,B) ->
-    keyumerge(N,A,B,[]).
+% @doc Makes a merge between two tuple lists.
+% Unlike lists:ukeymerge/3, the resulting list will only contain one element for each key, even if one of the source lists contain several.
+%
+% If two elements have the same key, the first element with the key from the first list is used.
+%
+% <code>
+% > {@module}:keyumerge(1,[{a,b},{a,d}],[{a,c},{b,c}]).<br/>
+% [{b,c},{a,b}]<br/>
+% </code>
+%
+keyumerge(N,A,B) ->
+  lists:reverse(keyumerge(N,keyuniq(N,A),keyuniq(N,B),[])).
 
-    keyumerge(_N,[],[],Acc) ->
-    Acc;
+keyumerge(_N,[],[],Acc) ->
+  Acc;
 
-    keyumerge(_N,L1,[],Acc) ->
-    L1++Acc;
+keyumerge(_N,L1,[],Acc) ->
+  L1++Acc;
 
-    keyumerge(_N,[],L2,Acc) ->
-    L2++Acc;
+keyumerge(_N,[],L2,Acc) ->
+  L2++Acc;
 
-    keyumerge(N,LL1=[I1|L1],LL2=[I2|L2],Acc) ->
-    A=element(N,I1),
-    B=element(N,I2),
-    if 
+keyumerge(N,LL1=[I1|L1],LL2=[I2|L2],Acc) ->
+  A=element(N,I1),
+  B=element(N,I2),
+  if 
     A == B ->
-    keyumerge(N,L1,L2,[I1|Acc]);
+      keyumerge(N,L1,L2,[I1|Acc]);
     A < B ->
-    keyumerge(N,L1,LL2,[I1|Acc]);
+      keyumerge(N,L1,LL2,[I1|Acc]);
     A > B ->
-keyumerge(N,LL1,L2,[I2|Acc])
-    end.
+      keyumerge(N,LL1,L2,[I2|Acc])
+  end.
 
 -spec keyudmerge(N::pos_integer(),[A::tuple()],[B::tuple()]) %when N =< size(A) andalso size(A)==size(B) 
     -> [tuple()].
 
-% @doc Makes a distinct, sorted merge between two sorted tuple lists.
+% @doc Makes a distinct, merge between two sorted distinct tuple lists.
+%
 % If two elements have the same key, the element from the first list is used.
-% This is basically lists:umerge for keyval lists.
-    keyudmerge(N,A,B) ->
-    keyudmerge(N,A,B,[],[]).
+%
+keyudmerge(N,A,B) ->
+  keyudmerge(N,A,B,[],[]).
 
-    keyudmerge(_N,[],[],Acc,Bcc) ->
-    {Acc,lists:reverse(Bcc)};
+keyudmerge(_N,[],[],Acc,Bcc) ->
+  {Acc,lists:reverse(Bcc)};
 
-    keyudmerge(_N,L1,[],Acc,Bcc) ->
-    {lists:reverse(Acc)++L1,lists:reverse(Bcc)};
+keyudmerge(_N,L1,[],Acc,Bcc) ->
+  {lists:reverse(Acc)++L1,lists:reverse(Bcc)};
 
-    keyudmerge(_N,[],L2,Acc,Bcc) ->
-    {lists:reverse(Acc)++L2,lists:reverse(Bcc)};
+keyudmerge(_N,[],L2,Acc,Bcc) ->
+  {lists:reverse(Acc)++L2,lists:reverse(Bcc)};
 
-    keyudmerge(N,LL1=[I1|L1],LL2=[I2|L2],Acc,Bcc) ->
-    A=element(N,I1),
-    B=element(N,I2),
-    if 
-        A == B ->
-            keyudmerge(N,L1,L2,[I1|Acc],[I2|Bcc]);
-        A < B ->
-            keyudmerge(N,L1,LL2,[I1|Acc],Bcc);
-        A > B ->
-            keyudmerge(N,LL1,L2,[I2|Acc],Bcc)
-    end.
+keyudmerge(N,LL1=[I1|L1],LL2=[I2|L2],Acc,Bcc) ->
+  A=element(N,I1),
+  B=element(N,I2),
+  if 
+    A == B ->
+      keyudmerge(N,L1,L2,[I1|Acc],[I2|Bcc]);
+    A < B ->
+      keyudmerge(N,L1,LL2,[I1|Acc],Bcc);
+    A > B ->
+      keyudmerge(N,LL1,L2,[I2|Acc],Bcc)
+  end.
 
+% @private
+% @deprecated
+% @doc seems to be doing the exact same thing as keyudmerge/3. Why did I build this?
 unsort_keymerge(_N,[],B) -> {B,[]};
 
 unsort_keymerge(N,A,B) ->
@@ -196,36 +222,26 @@ unsort_keymerge(N,A,B,Bcc) ->
 
 
 % @doc Only keeps one of each element.
-% Comparison by '=='/2.
+% Comparison by {@link erlang:'=='/2}.
 uniq(L) -> uniq(lists:sort(L),[]).
 
 uniq([],Bs) -> lists:reverse(Bs);
 uniq([A|As],[B|Bs]) when A == B -> uniq(As,[B|Bs]);
 uniq([A|As],Bs) -> uniq(As,[A|Bs]).
 
+-spec keyuniq(pos_integer(),[tuple()]) -> [tuple()].
 % @doc Only keeps one of each element with the key at position Key.
-% Comparison by '=='/2.
-keyuniq(Key,L) -> keyuniq(Key,lists:keysort(Key,L),[]).
-
-keyuniq(_Key,[],Bs) -> lists:reverse(Bs);
-keyuniq(Key,[A|As],[B|Bs]) when element(Key,A) == element(Key,B) -> keyuniq(Key,As,[B|Bs]);
-keyuniq(Key,[A|As],Bs) -> keyuniq(Key,As,[A|Bs]).
+% Comparison on key by {@link erlang:'=='/2}.
+keyuniq(Key,L) -> skeyuniq(Key,lists:keysort(Key,L),[]).
 
 % @doc Only keeps one of each element with the key at position Key. Does not sort the list beforehand.
 % Uniqueness is only guaranteed per group. Unless keys are already grouped together, this will result in several groups with the same key.
-% Comparison by '=='/2.
+% Comparison by {@link erlang:'=='/2}.
 skeyuniq(Key,L) -> skeyuniq(Key,L,[]).
 
 skeyuniq(_Key,[],Bs) -> lists:reverse(Bs);
 skeyuniq(Key,[A|As],[B|Bs]) when element(Key,A) == element(Key,B) -> skeyuniq(Key,As,[B|Bs]);
 skeyuniq(Key,[A|As],Bs) -> skeyuniq(Key,As,[A|Bs]).
-
-% @doc unique map insert
-%
-% Insert all of the elements from the first list into the second that are not already there.
--spec uminsert([A],[A]) -> [A].
-uminsert(As,Bs) ->
-    lists:foldr(fun uinsert/2,Bs,As).
 
 
 % @doc unique insert
@@ -240,15 +256,14 @@ uinsert(A,Bs) ->
         false -> [A|Bs]
     end.
 
--spec is_in(A,List::[A]) -> boolean().
+% @doc unique map insert
+%
+% Insert all of the elements from the first list into the second that are not already there.
+-spec uminsert([A],[A]) -> [A].
+uminsert(As,Bs) ->
+    lists:foldr(fun uinsert/2,Bs,As).
 
-% @doc Basically {@link lists:member/2} with a nicer name.
-is_in(_A,[]) -> false;
 
-is_in(A,[B|Bs]) ->
-    if A==B -> true;
-        true -> is_in(A,Bs)
-    end.
 % @doc Reverse unique insert
 %
 %Inserts an element to the end of a list, unless it is already in the list.
@@ -265,14 +280,26 @@ ruinsert(A,Bs) ->
 ruminsert(As,Bs) ->
     lists:reverse(uminsert(lists:reverse(As),lists:reverse(Bs))).
 
+-spec is_in(A,List::[A]) -> boolean().
+% @doc Basically {@link lists:member/2} with a nicer name.
+is_in(_A,[]) -> false;
+
+is_in(A,[B|Bs]) ->
+    if A==B -> true;
+        true -> is_in(A,Bs)
+    end.
+
 
 
 % @doc Picks all tuples that match any of the keys in the keylist.
 %
 % Takes out all tuples from KeyVals that has a key in Keys at tuple position KeyPos.
 %
-% Example:
-% select_keyvals([a],2,[{a,x,z},{b,a},{c,a,w}]) -> [{b,a},{c,a,w}].
+%
+% <code>
+% > {@module}:select_keyvals([a],2,[{a,x,z},{b,a},{c,a,w}]).<br/>
+% [{b,a},{c,a,w}]<br/>
+% </code>
 
 -spec select_keyvals([any()],pos_integer(),[tuple()]) -> [tuple()].
 select_keyvals(Keys,KeyPos,KeyVals) ->
@@ -284,9 +311,12 @@ select_keyvals(Keys,KeyPos,KeyVals) ->
 % 
 % Crashes if the value position is outside the tuple boundaries.
 %
-% Example:
-% select_vals([a],2,1,[{a,x,z},{b,a},{c,a,w}]) -> [b,c].
--spec select_vals(list(any()),pos_integer(),pos_integer(),list(any())) -> list(any()).
+%
+% <code>
+% > {@module}:select_vals([a],2,1,[{a,x,z},{b,a},{c,a,w}]).<br/>
+% [b,c]<br/>
+% </code>
+-spec select_vals(list(any()),pos_integer(),pos_integer(),list(tuple())) -> Vals::list(any()).
 select_vals(Keys,KeyPos,ValPos,KeyVals) ->
     {RetVals,_}=lists:foldr(
         fun(K,{Acc,KV}) -> 
@@ -307,7 +337,10 @@ select_vals(Keys,KeyPos,ValPos,KeyVals) ->
 
 % @doc Splits the list into values for which the function returns true, and values for which the function returns false.
 %
-% Example: <code>sift(fun(X) -> X == 3 end,[1,3,4]) -> {[3],[1,4]}.</code>
+% <code>
+% > {@module}:sift(fun(X) -> X == 3 end,[1,3,4]).<br/>
+% {[3],[1,4]}</code>
+% @equiv lists:partition(F,L)
 -spec sift(sorting_fun(X),List::[X]) -> {Matching::[X],NotMatching::[X]}.
 
 sift(Pred,List) ->
@@ -329,7 +362,11 @@ sift(Pred,[L|List],Acc,Bcc) ->
 %
 % Basically a map that sifts out values that are not to be mapped.
 %
-% Example: sift(fun(X) -> if X == 3 -> {true,a}; true -> false end,[1,3,4]) -> {[a],[1,4]}.
+%
+% <code>
+% > {@module}:siftmap(fun(X) -> if X == 3 -> {true,a}; true -> false end,[1,3,4]).<br/>
+% {[a],[1,4]}<br/>
+% </code>
 -spec siftmap(sortmap_fun(X,Y),List::[X]) -> {Matching::[Y],NotMatching::[X]}.
 
 siftmap(Pred,List) ->
@@ -347,21 +384,9 @@ siftmap(Pred,[L|List],Acc,Bcc) ->
     end.
 
 
-% @doc The same as mapsiftl, but with the option to change the matching elements.
-%
--spec mapsiftmapl([X],constructor(X,sortmap_fun(Y,Z)),[Y]) -> {[{X,[Z]}],[Y]}.
-mapsiftmapl(Items,Pred,List) ->
-    lists:mapfoldl(
-        fun(Item,SubList) ->
-                {Res,Rest} = siftmap(Pred(Item),SubList),
-                {{Item,Res},Rest}
-        end,
-        List,
-        Items).
-
 % @doc Pairs elements with their matching values, according to a match function. Returns a tuple of the matches and unmatched values.
 %
-% Essentially, combines a sift with a lists:mapfoldl/3.
+% Essentially, combines a sift with a {@link lists:mapfoldl/3}.
 %
 % Takes in a list of values (A) to be mapped over, a constructor (B) that converts the values of the list A into sift functions and a list (C) that is to be partitioned up according to the sift functions.
 %
@@ -373,15 +398,34 @@ mapsiftmapl(Items,Pred,List) ->
 %
 % 
 % Returns a tuple of all pairings {(X),[(Y)]} that could be made, together with any elements that didn't match any of the sift functions.
-
-% Maps the constructor over every element in the first list. Sifts the sec
-% Takes in a list Map of elements. Each element is, in order, passed to MapFun to produce the SiftFun for the element. The element runs
-% 
+%
+% <code>
+% > {@module}:mapsiftl([2,3,4],fun(X) -> fun(Y) -> Y rem X == 0 end end,lists:seq(1,10)).<br/>
+% {[{2,[2,4,6,8,10]},{3,[3,9]},{4,[]}],[1,5,7]}<br/>
+% </code>
 -spec mapsiftl(A::[X],B::constructor(X,sorting_fun(Y)),C::[Y]) -> {[{X,[Y]}],[Y]}.
 mapsiftl(Items,Pred,List) ->
     lists:mapfoldl(
         fun(Item,SubList) ->
                 {Res,Rest} = sift(Pred(Item),SubList),
+                {{Item,Res},Rest}
+        end,
+        List,
+        Items).
+
+% @doc The same as mapsiftl, but with the option to change the matching elements.
+%
+%
+% <code>
+% > {@module}:mapsiftmapl([2,3,4],fun(X) -> fun(Y) -> if Y rem X == 0 -> {true,x}; true -> false end end end,lists:seq(1,10)).<br/>
+%   {[{2,[x,x,x,x,x]},{3,[x,x]},{4,[]}],[1,5,7]}<br/>
+% </code>
+%
+-spec mapsiftmapl([X],constructor(X,sortmap_fun(Y,Z)),[Y]) -> {[{X,[Z]}],[Y]}.
+mapsiftmapl(Items,Pred,List) ->
+    lists:mapfoldl(
+        fun(Item,SubList) ->
+                {Res,Rest} = siftmap(Pred(Item),SubList),
                 {{Item,Res},Rest}
         end,
         List,
@@ -413,7 +457,10 @@ mapsiftr(Items,Pred,List) ->
 %
 % Makes a list of the N first elements of L, then the N first elements of tl(L) and so on until the last N elements of L.
 %
-% E.g. transforms [1,2,3,...] to [[1,2,3..],[2,3,4...],...] where each sub list is of length Length, and the total list is of length length(List)-Length. Good for sliding window operations and such.
+% <code>
+% > {@module}:sequences(3,[1,2,3,4,5]).<br/>
+% [[1,2,3],[2,3,4],[3,4,5]]<br/> 
+% </code>
 -spec sequences(pos_integer(),List::[X]) -> [[X]].
 sequences(Length,List) when Length > length(List) ->
     [];
@@ -423,7 +470,10 @@ sequences(Length,List) ->
 
 % @doc Runs {@link sequence/2} on the list, and runs {@link split_at/2} on each resulting sublist. 
 %
-% E.g sequence_split(3,2,List=lists:seq(1,100)) -> [{[1,2],[3]},{[2,3],[4]}....]
+% <code>
+% > {@module}:sequence_split(3,2,List=lists:seq(1,100)).<br/>
+% [{[1,2],[3]},{[2,3],[4]}...]<br/>
+% </code>
 -spec sequence_split(pos_integer(),pos_integer(),List::[X]) -> [{[X],[X]}].
 sequence_split(SequenceLength,SplitAt,List) ->
     Split = fun(SubList) -> 
@@ -432,6 +482,8 @@ sequence_split(SequenceLength,SplitAt,List) ->
     lists:map(Split,sequences(SequenceLength,List)).
 
 % @doc splits a list at a certain point.
+% @deprecated
+% @equiv lists:split(N,List)
 % @end
 % , length(L) ==N.
 -spec split_at(non_neg_integer(),List::[X]) -> {[X],[X]}
@@ -447,7 +499,7 @@ select_one(List) ->
 
 % @doc Picks the nth element of a list, and returns it together with the rest of the list.
 % Returns false if no such element exists.
--spec pick_nth([X],pos_integer()) -> {X,[X]}.
+-spec pick_nth(List::[X],pos_integer()) -> {X,[X]}.
 
 pick_nth(_,N) when N =< 0 -> false;
 pick_nth(L,N) when N > length(L) -> false;
@@ -461,7 +513,7 @@ pick_nth([L|Ls],N,Before) -> pick_nth(Ls,N-1,[L|Before]).
 
 % @doc The same as pick_nth, but does not reverse its arguments on return.
 % For efficiency reasons.
--spec pick_nth_nonrev([X],pos_integer()) -> {X,[X]}.
+-spec pick_nth_nonrev(List::[X],pos_integer()) -> {X,[X]}.
 pick_nth_nonrev(_,N) when N =< 0 -> false;
 pick_nth_nonrev(L,N) when N > length(L) -> false;
 
@@ -475,12 +527,12 @@ pick_nth_nonrev([L|Ls],N,Before) -> pick_nth_nonrev(Ls,N-1,[L|Before]).
 %
 % The order of the list is not guaranteed to be maintained.
 
--spec pick_random([X]) -> {X,[X]}.
+-spec pick_random(List::[X]) -> {Picked::X,Rest::[X]}.
 pick_random(List) ->
     pick_nth_nonrev(List,random:uniform(length(List))).
 
 % @doc pick N elements at random from the list, and return those elements together with the rest of the list.
--spec pick_n_random(non_neg_integer(),[X]) -> {[X],[X]}
+-spec pick_n_random(non_neg_integer(),List::[X]) -> {Picked::[X],Rest::[X]}
     when X::any().
 pick_n_random(N,List) ->
     pick_n_random(N,List,[]).
@@ -513,10 +565,12 @@ reorder(List) ->
 %
 % Crashes if N is bigger than the length of the list.
 %
-% pick_n(3,[1,2,3,4]) -> [1,2,3].
-%
-% pick_n(3,[1,2]) throws an exception.
--spec pick_n(non_neg_integer(),[X]) -> [X] when X :: any().
+% <code>
+% > {@module}:pick_n(3,[1,2,3,4]).<br/>
+% [1,2,3]<br/>
+% > {@module}:pick_n(3,[1,2]). % throws an exception.
+% </code>
+-spec pick_n(Index::non_neg_integer(),List::[X]) -> [X] when X :: any().
 pick_n(A,B) -> pick_n_(A,B,[]).
 
 pick_n_(0,_,Acc) -> lists:reverse(Acc);
@@ -525,10 +579,16 @@ pick_n_(N,[L|Ls],Acc) -> pick_n_(N-1,Ls,[L|Acc]).
 % @doc Non-crashing version of {@link pick_n/2}.
 %
 % Returns undef for any element that would have been inserted had the list been long enough.
-% pick_n(3,[1,2,3,4]) -> [1,2,3].
 %
-% pick_n(3,[1,2]) -> [1,2,undef].
+% <code>
+% > {@module}:pick_n_undef(3,[1,2,3,4]).<br/>
+% [1,2,3]<br/>
+% > {@module}:pick_n_undef(3,[1,2]).<br/>
+% [1,2,undef]<br/>
+% </code>
+% @equiv pick_n(Index,List,undef)
 
+-spec pick_n_undef(Index::non_neg_integer(),List::[X]) -> [X|undef].
 pick_n_undef(A,B) -> pick_n_undef(A,B,[]).
 pick_n_undef(0,_,Acc) -> lists:reverse(Acc);
 pick_n_undef(N,[L|Ls],Acc) -> pick_n_undef(N-1,Ls,[L|Acc]);
@@ -537,9 +597,14 @@ pick_n_undef(N,[],Acc) -> pick_n_undef(N-1,[],[undef|Acc]).
 % @doc Non-crashing version of {@link pick_n/2}, with a default value.
 %
 % Returns the default value for any element that would have been inserted had the list been long enough.
-% pick_n(3,[1,2,3,4]) -> [1,2,3].
 %
-% pick_n(3,[1,2]) -> [1,2,undef].
+% <code>
+% > {@module}:pick_n(3,[1,2,3,4],kaka) <br/>
+% [1,2,3]<br/>
+% > {@module}:pick_n(3,[1,2],kaka) <br/>
+% [1,2,kaka]
+% </code>
+-spec pick_n(Index::non_neg_integer(),List::[X],Default) -> [X|Default].
 pick_n(A,B,Y) -> pick_n_(A,B,Y,[]).
 
 pick_n_(0,_,_Y,Acc) -> lists:reverse(Acc);
@@ -550,7 +615,9 @@ pick_n_(N,[],Y,Acc) -> pick_n_(N-1,[],[Y|Acc]).
 %
 % Returns the element from the second list whose index are in the first list.
 
+-spec pick_elems([pos_integer()],List::[A]) -> [A].
 pick_elems(Elems,List) -> lists:map(fun(N) -> lists:nth(N,List) end,Elems).
+
 
 group_(Thing,false) when is_list(Thing) ->
     {Key,Other}=lst_ext:pick_nth(Thing,1),
@@ -565,6 +632,15 @@ group_(Thing,{OldKey,Acc,Bcc}) when is_list(Thing) ->
             {Key,[Other],[{OldKey,lists:reverse(Acc)}|Bcc]}
     end.
 
+-spec group([[X|Y]]) ->  [{X,[[Y]]}].
+% @doc Groups together into a tuple all adjacent lists with the same first element 
+%
+% Example:
+%
+% <code>
+% > {@module}:lst_ext:group([[a,b,c],[a,b,d],[b,c],[a,c]]).<br/>
+% [{a,[[c]]},{b,[[c]]},{a,[[b,c],[b,d]]}]
+% </code>
 group(LoL) ->
     {LastKey,LastAcc,Bcc}=lists:foldl(fun group_/2,false,LoL),
     [{LastKey,LastAcc}|Bcc].
@@ -585,11 +661,22 @@ group_by_nth_(Elem) ->
             end
     end.
 
+-spec group_by_nth(Index::non_neg_integer(),[[X|Y]]) ->  [{X,[Y]}].
+% @doc Groups together into a tuple all adjacent lists with the same nth element 
+%
+% Example:
+%
+% <code>
+% > {@module}:lst_ext:group_by_nth(2,[[a,b,c],[a,b,d],[b,c],[a,c]]).<br/>
+% [{b,[[a,d],[a,c]]},{c,[[b],[a]]}]
+% </code>
 group_by_nth(Elem,LoL) ->
     Fun = group_by_nth_(Elem),
     {LastKey,LastAcc,Bcc}=lists:foldl(Fun,false,LoL),
     lists:reverse([{LastKey,lists:reverse(LastAcc)}|Bcc]).
 
+-spec set_equiv([any()],[any()]) -> boolean().
+% @doc Tests whether two lists are equivalent when considered as sets
 set_equiv(L1,L2) ->
     S1=sets:from_list(L1),
     S2=sets:from_list(L2),

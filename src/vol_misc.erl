@@ -1,53 +1,68 @@
 % @doc This module contains various functions that doesn't fit in any of the categories encompassed by the other modules.
 -module(vol_misc).
 
--export([restart/1
-         ,chain/1
-         ,rechain/1
-         ,recompile/0
-         ,recompile/1
-         ,reload_files/1
-         ,dispatch/1
-         ,fst/1
-         ,flip/1
-         ,snd/1
-         %,make_documentation/1
-         ,make_documentation/0
-         ,mkdoc_deps/0
-         ,number_to_string/1
-         ,fix_home/1
-         ,recompile_live/0
-         ,fac/1
-         ,fac_plus/2
-         ,nCr/2
-         ,nCr_exact/2
-         ,reload_app/1
-         ,gen_id/0
-         ,microseconds_to_hms/1
-         ,callback/1
-         ,callback/2
-         ,thing_to_number/1
-         ,boolify/1
-        ]).
+-export([
+    restart/1
+    ,chain/1
+    % == moist ==
+    ,rechain/1
+    ,recompile/0
+    ,recompile/1
+    ,reload_files/1
+    ,dispatch/1
+    ,fst/1
+    ,flip/1
+    ,snd/1
+    % == blargh ==
+    %,make_documentation/1
+    ,make_documentation/0
+    ,mkdoc_deps/0
+    ,number_to_string/1
+    ,fix_home/1
+    ,recompile_live/0
+    ,fac/1
+    ,fac_plus/2
+    ,nCr/2
+    ,nCr_exact/2
+    ,reload_app/1
+    ,gen_id/0
+    ,microseconds_to_hms/1
+    ,callback/1
+    ,callback/2
+    ,thing_to_number/1
+    ,boolify/1
+    ,trace/1
+    ,untrace/1
+  ]).
 
 
+%% @doc same as sys:trace(Thing,true).
+%% @equiv sys:trace/2
+trace(Thing) -> sys:trace(Thing,true).
+
+%% @doc same as sys:trace(Thing,false).
+%% @equiv sys:trace/2
+untrace(Thing) -> sys:trace(Thing,false).
 
 boolify(false) -> false;
 boolify(_) -> true.
 
-thing_to_number(X) when is_number(X) -> X;
+%% @doc Converts Thing to a number if Thing is a number inside an atom, list or binary.
+%%
+%% Throws an error:badarg when Thing is not a number.
+thing_to_number(Thing) when is_number(Thing) -> Thing;
 
-thing_to_number(X) when is_binary(X) -> thing_to_number(binary_to_list(X));
+thing_to_number(Thing) when is_binary(Thing) -> thing_to_number(binary_to_list(Thing));
 
-thing_to_number(X) when is_list(X) ->
-    try list_to_integer(X) of
+thing_to_number(Thing) when is_list(Thing) ->
+    try list_to_integer(Thing) of
         Y -> Y
     catch
         error:badarg ->
-            list_to_float(X) 
+            list_to_float(Thing) 
     end;
         
-thing_to_number(X) when is_atom(X) -> thing_to_number(atom_to_list(X));
+thing_to_number(Thing) when is_atom(Thing) -> thing_to_number(atom_to_list(Thing));
 
 thing_to_number(_) -> error(badarg).
         
@@ -152,6 +167,7 @@ microseconds_to_hms(MicroTime) ->
     {Hours,Minutes,Seconds}.
 
 % @doc generates a unique id for arbitrary use.
+% @todo Replace this with the best new erlang quick fix for newer erlang versions!
 gen_id() -> now().
 
 % @doc Restart an application
@@ -200,7 +216,7 @@ make_documentation() ->
 % @doc Generates documentation for an app, and put the documentation into doc/appname
 make_documentation(Application) when is_atom(Application)->
     try
-        edoc:application(Application,'.',[{dir,"doc/"++atom_to_list(Application)}])
+        edoc:application(Application,'.',[{dir,"doc/"++atom_to_list(Application)},{sort_functions,false}])
     of
     V -> {Application,V}
     catch
@@ -209,7 +225,7 @@ make_documentation(Application) when is_atom(Application)->
 
 make_documentation(Application) when is_list(Application)-> make_documentation(list_to_atom(Application)).
 
-% @doc Make documentation for all apps in ./ebin and ./deps, placing them in a subdir in ./doc or ./doc/deps, respectively 
+% @doc Make documentation for all apps in ./ebin and ./deps, placing them in a subdir in ./doc and ./doc/deps, respectively 
 mkdoc_deps() ->
     {ok,Deps} = file:list_dir(deps),
     lists:foreach(fun (X) -> mkdoc_deps(X,self()) end ,Deps),
@@ -220,13 +236,18 @@ mkdoc_deps(Dep,Pid) ->
     spawn(
         fun
             () ->
-                Pid!{Dep,
-                    try edoc:application(list_to_atom(Dep),"deps/"++Dep,[{dir,"doc/deps/"++Dep}]) of
-                        V -> V
-                    catch
-                        E:F -> {E,F}
-                    end
-                    } 
+              EDocOpts=[{dir,"doc/deps/"++Dep},
+                {sort_functions,false},
+                {todo,true},
+                {private,false},
+                {new,true}],
+              Pid!{Dep,
+                try edoc:application(list_to_atom(Dep),"deps/"++Dep,EDocOpts) of
+                  V -> V
+                catch
+                  E:F -> {E,F}
+                end
+              } 
         end).
 
 
