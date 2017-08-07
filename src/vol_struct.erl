@@ -44,7 +44,7 @@ deep_map_num(Fun,[A|B]) ->
 
 deep_map_num(Fun,A) when is_number(A) -> Fun(A);
 
-deep_map_num(Fun,A) -> A.
+deep_map_num(_Fun,A) -> A.
 
 
 % @doc Deep fold over all non-structure elements of a structure.
@@ -62,7 +62,7 @@ deep_foldl(Fun,Acc,[A|B]) ->
     Bcc = deep_foldl(Fun,Acc,A),
     deep_foldl(Fun,Bcc,B);
 
-deep_foldl(Fun,Acc,[]) -> Acc;
+deep_foldl(_Fun,Acc,[]) -> Acc;
 
 deep_foldl(Fun,Acc,A) -> Fun(A,Acc).
     
@@ -117,7 +117,7 @@ deep_foldl_num(Fun,Acc,[A|B]) ->
 
 deep_foldl_num(Fun,Acc,A) when is_number(A) -> Fun(A,Acc);
 
-deep_foldl_num(Fun,Acc,A) -> Acc.
+deep_foldl_num(_Fun,Acc,_A) -> Acc.
 
 % @doc Deep fold over all numeric elements of a structure, using first element as initial return value.
 %

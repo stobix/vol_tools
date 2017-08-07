@@ -152,7 +152,11 @@ microseconds_to_hms(MicroTime) ->
     {Hours,Minutes,Seconds}.
 
 % @doc generates a unique id for arbitrary use.
+-ifdef(not_now).
+gen_id() -> erlang:unique_integer().
+-else.
 gen_id() -> now().
+-endif.
 
 % @doc Restart an application
 restart(Module) ->
