@@ -495,7 +495,7 @@ split_at(N,List) ->
 % @doc Picks an element at random, and returns it discarding the rest of the list.
 -spec select_one(List::[X]) -> X.
 select_one(List) ->
-    lists:nth(random:uniform(length(List)),List).
+    lists:nth(rand:uniform(length(List)),List).
 
 % @doc Picks the nth element of a list, and returns it together with the rest of the list.
 % Returns false if no such element exists.
@@ -529,7 +529,7 @@ pick_nth_nonrev([L|Ls],N,Before) -> pick_nth_nonrev(Ls,N-1,[L|Before]).
 
 -spec pick_random(List::[X]) -> {Picked::X,Rest::[X]}.
 pick_random(List) ->
-    pick_nth_nonrev(List,random:uniform(length(List))).
+    pick_nth_nonrev(List,rand:uniform(length(List))).
 
 % @doc pick N elements at random from the list, and return those elements together with the rest of the list.
 -spec pick_n_random(non_neg_integer(),List::[X]) -> {Picked::[X],Rest::[X]}
@@ -552,10 +552,10 @@ reorder(List) ->
             (_,{[A],Acc}) ->
                 [A|Acc];
             (_,{As,Acc}) ->
-                {Nth,List1}=pick_nth(As,random:uniform(length(As))),
+                {Nth,List1}=pick_nth(As,rand:uniform(length(As))),
                 {List1,[Nth|Acc]};
             (_,As) ->
-                {Nth,List1}=pick_nth(As,random:uniform(length(As))),
+                {Nth,List1}=pick_nth(As,rand:uniform(length(As))),
                 {List1,[Nth]}
         end,
         List,
