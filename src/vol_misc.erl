@@ -44,6 +44,7 @@ trace(Thing) -> sys:trace(Thing,true).
 %% @equiv sys:trace/2
 untrace(Thing) -> sys:trace(Thing,false).
 
+%% @doc Makes everything not false become true.
 boolify(false) -> false;
 boolify(_) -> true.
 
@@ -193,17 +194,31 @@ fac_plus(N,M) -> (N+M)*fac_plus(N-1,M).
 
 %nCr2(N,K) -> fac_plus(K,N-K) div fac(K).
 
-nCr_exact(N,K) ->
-    nCr_exact(N,K,1,1).
 
-nCr_exact(_N,0,NAcc,KAcc) -> NAcc div KAcc;
-nCr_exact(N,K,NAcc,KAcc) -> nCr_exact(N-1,K-1,NAcc*N,KAcc*K).
+-spec nCr(non_neg_integer(),non_neg_integer()) -> float().
+% @doc
+% <code>
+% > {@module}:nCr(230,70).<br/>
+% 1.3737932402434575e60.<br/>
+% </code>
 
 nCr(N,K) ->
     nCr(N,K,1).
 
 nCr(_N,0,Acc) -> Acc;
 nCr(N,K,Acc) -> nCr(N-1,K-1,N/K*Acc).
+
+-spec nCr_exact(non_neg_integer(),non_neg_integer()) -> non_neg_integer().
+% @doc
+% <code>
+% > {@module}:nCr_exact(230,70).<br/>
+%  1373793240243456661492159788648040006160337580101209529671505.<br/>
+% </code>
+nCr_exact(N,K) ->
+    nCr_exact(N,K,1,1).
+
+nCr_exact(_N,0,NAcc,KAcc) -> NAcc div KAcc;
+nCr_exact(N,K,NAcc,KAcc) -> nCr_exact(N-1,K-1,NAcc*N,KAcc*K).
 
 
 % @doc Make documentation for all .app's in ./ebin
@@ -251,9 +266,11 @@ mkdoc_deps(Dep,Pid) ->
         end).
 
 
+
+% @deprecated This has the same effect as application:ensure_all_started/1 in erts 17.0 or above. In lower versions, it is not present.
 % @doc Starts an app, ensuring that all its dependencies are started.
-%
-% This has the same effect as application:ensure_all_started/1 in erts 17.0 or above. In lower versions, it is not present.
+% @equiv application:ensure_all_started(Module)
+% 
 chain(Module) ->
     case application:start(Module) of
         {error,{not_started,A}} ->
@@ -273,11 +290,13 @@ rechain(Module) ->
     end.
 
 % @doc Pick the first element from a tuple. Good for use in maps, e.g. list:map(fun vol_misc:fst/1,Things) instead of the (slightly) longer lists:map(fun (X) -> element(1,X) end,Things).
+% @equiv element(1,Tuple)
 fst(Tuple) -> element(1,Tuple).
 % @doc Pick the second element from a tuple. Good for use in maps.
+% @equiv element(2,Tuple)
 snd(Tuple) -> element(2,Tuple).
 
-% @doc Replaces any leading $~ with the current user's home directory.
+% @doc Replaces any leading ~ with the current user's home directory.
 fix_home([$~,$/|Name]) ->
     [os:getenv("HOME"),"/",Name];
 
@@ -363,16 +382,38 @@ reload_app(Dir) ->
             {Dir,enoent}
     end.
 
-
+  -spec flip([{A,B}]) -> [{B,A}].
 % @doc Flips the first and second position in each tuple in a list of 2-tuples.
 flip([]) -> [];
 flip([{A,B}|ListOfTuples]) ->[{B,A}|flip(ListOfTuples)].
 
+% @doc not in use. You probably shouldn't use this.
 dispatch(Prog) ->
     systools:make_script(Prog,[local]),
     systools:make_tar(Prog,[{erts, "/usr/lib/erlang"}]).
 
-% @deprecated This is essentially integer_to_list/1, which is probably better defined anyways.
+-spec number_to_string(integer()|float()) -> string().
+% @doc integer_to_list for integers, and something similar for floats.
+%
+% <code>
+% > {@module}:number_to_string(3).<br/>
+% "3"<br/>
+% </code>
+%
+% <code>
+% > {@module}:number_to_string(3.1).<br/>
+% "3.1"<br/>
+% </code>
+%
+% <code>
+% > integer_to_list(3).<br/>
+% "3"<br/>
+% </code>
+%
+% <code>
+% > float_to_list(3.1).<br/>
+% "3.10000000000000008882e+00"<br/>
+% </code>
 number_to_string(Number) when is_integer(Number) -> integer_to_list(Number);
-number_to_string(Number) when is_float(Number) -> io_lib:format("~p",[Number]).
+number_to_string(Number) when is_float(Number) -> lists:flatten(io_lib:format("~p",[Number])).
 

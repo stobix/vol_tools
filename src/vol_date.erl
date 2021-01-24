@@ -13,37 +13,58 @@
         ]).
 
 
-% @type date() = {YYYY::pos_integer(),MM::pos_integer(),DD::pos_integer()}.
-% @type time() = {HH::pos_integer(),MM::pos_integer(),SS::pos_integer()}.
-% @type time_interval() = {datetime,{date(),time()}} |{date, date()}| {time,time()} | {days,pos_integer()} | {day,pos_integer()} | {seconds,pos_integer()}|{second,pos_integer}.
-% @type time_type() = datetime | time | date | day | days | second | seconds .
-% @doc Subtracts a time interval from another.
-%
-% Each interval is converted to seconds, and the first subtracted from the other. (Dates are intervals of time from some starting point to the date specified.)
-% The result is then converted back to the type of the first argument and sent back.
+% @type date() = {YYYY::non_neg_integer(),MM::non_neg_integer(),DD::non_neg_integer()}.
+% @type time() = {HH::non_neg_integer(),MM::non_neg_integer(),SS::non_neg_integer()}.
+% @type time_interval() = {datetime,{date(),time()}} |{date, date()}| {time,time()} | {(days|day),non_neg_integer()}  | {(hour|hours),non_neg_integer()} | {(second|seconds),non_neg_integer} |(Seconds :: non_neg_integer()).
+% @type time_type() = datetime | time | date | day | days | hour | hours |second | seconds .
 -type date() :: {pos_integer(),pos_integer(),pos_integer()}.
 -type time() :: {pos_integer(),pos_integer(),pos_integer()}.
 -type t(A,B) :: {A,B}.
 -type t_date() :: t(date,date()).
 -type t_time() :: t(time,time()).
 -type t_datetime() :: t(datetime,{date(),time()}).
--type t_second() :: t(second|seconds,non_neg_integer()).
+-type t_second() :: t(second|seconds,non_neg_integer()) | non_neg_integer().
 -type t_hour() :: t(hour|hours,non_neg_integer()).
 -type t_day() :: t(day|days,non_neg_integer()).
--type time_type() :: date | time | datetime | second | seconds | day | days | hour | hours .
+-type time_type() :: date | time | datetime | day | days | hour | hours | second | seconds .
 -type time_interval() :: t_datetime() | t_date() | t_time() | t_second() | t_day() | t_hour().
     
 -spec sub(time_interval(),time_interval()) -> time_interval().
+% @doc Subtracts a time interval from another.
+%
+% Each interval is converted to seconds, and the first subtracted from the other. (Dates are intervals of time from some starting point to the date specified.)
+% The result is then converted back to the type of the first argument and sent back.
+%
+% <code>
+% > {@module}:sub({datetime,{{2017,7,4},{0,56,34}}},{hours,3}).<br/>
+% {datetime,{{2017,7,3},{21,56,34}}}<br/>
+% </code>
 
 sub(A,B) ->
     sub(get_type(A),A,B).
 
 -spec sub(time_type(),time_interval(),time_interval()) -> time_interval().
+% @doc Subtracts a time interval from another, and converts the result.
+%
+% Each interval is converted to seconds, and the first subtracted from the other. (Dates are intervals of time from some starting point to the date specified.)
+% The result is then converted to the type specified in the first argument.
+%
+% <code>
+% > {@module}:sub(hours,{datetime,{{2017,7,4},{0,56,34}}},{hours,3}).<br/>
+% {hours,17685093}
+% </code>
 sub(Type,A,B) ->
     seconds_to(Type,convert_to_seconds(A)-convert_to_seconds(B)).
 
 
--spec convert_to(A::time_type(),time_interval()) -> time_interval().
+-spec convert_to(time_type(),time_interval()) -> time_interval().
+% @doc Converts to Type the time interval Time.
+%
+% <code>
+% > {@module}:convert_to(time,{seconds,23020}).<br/>
+% {time,{6,23,40}}<br/>
+% </code>
+% 
 convert_to(Type,Time) ->
     seconds_to(Type,convert_to_seconds(Time)).
 
@@ -61,8 +82,10 @@ add(A,B) ->
 add(Cast,A,B) ->
     seconds_to(Cast,convert_to_seconds(A)+convert_to_seconds(B)).
     
+-spec get_type(time_interval()) -> time_type().
+% @doc Gets the type of a time expression
 get_type({Type,_}) -> Type;
-get_type(N) when is_integer(N) -> integer.
+get_type(N) when is_integer(N) -> seconds.
 
 convert_to_seconds({datetime,DT})        -> calendar:datetime_to_gregorian_seconds(DT);
 
@@ -102,10 +125,13 @@ seconds_to(hours,S) -> {hours,trunc(S/3600)};
 seconds_to(hour,S) -> {hours,trunc(S/3600)};
 
 seconds_to(seconds,S) -> S;
+seconds_to(second,S) -> S;
 
 seconds_to(integer,S) -> S.
 
 -spec truncate_to_hours(time_interval()) -> time_interval().
+% @doc Truncates the time interval down to the nearest hour.
+% Returns in the same interval format as the Time argument.
 truncate_to_hours(Time) -> 
     Type = get_type(Time),
     Hours = convert_to(hours,Time),
